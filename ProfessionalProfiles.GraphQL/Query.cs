@@ -2,6 +2,7 @@
 using CSharpTypes.Extensions.String;
 using HotChocolate;
 using HotChocolate.Authorization;
+using Mailjet.Client.Resources;
 using Microsoft.AspNetCore.Identity;
 using ProfessionalProfiles.Data.Interface;
 using ProfessionalProfiles.Entities.Models;
@@ -15,6 +16,7 @@ namespace ProfessionalProfiles.GraphQL
 {
     public class Query
     {
+        #region Profile Section
         /// <summary>
         /// Generates Api Key for Users' Endpoint access
         /// </summary>
@@ -22,7 +24,7 @@ namespace ProfessionalProfiles.GraphQL
         /// <param name="userManager"></param>
         /// <returns></returns>
         [Authorize]
-        public async Task<ApiKeyPayload> GetApiKeyAsync([Service] IRepositoryManager repository, 
+        public async Task<ApiKeyPayload> GetApiKeyAsync([Service] IRepositoryManager repository,
             [Service] UserManager<Professional> userManager)
         {
             var loggedInUserId = repository.User.GetLoggedInUserId();
@@ -45,24 +47,47 @@ namespace ProfessionalProfiles.GraphQL
             return new ApiKeyPayload(ApiKeyDto.Initialize(apiKey, "", HttpStatusCode.OK, true));
         }
 
-
-        [Authorize]
+        /// <summary>
+        /// Gets User profile details
+        /// </summary>
+        /// <param name="userManager"></param>
+        /// <param name="repository"></param>
+        /// <returns></returns>
         public async Task<ProfilePayload> GetProfileAsync([Service] UserManager<Professional> userManager,
-            [Service] IRepositoryManager repository)
+            [Service] IRepositoryManager repository, [GlobalState] string? apiKey = "")
         {
-            var userId = repository.User.GetLoggedInUserId();
-            if (userId.IsNullOrEmpty())
+            var userId = repository.User.GetLoggedInOrApiKeyUserId(apiKey!);
+
+            if (userId.IsEmpty())
             {
                 return new ProfilePayload(ProfessionalDto.MapData(null, HttpStatusCode.Unauthorized, "Access denied!"));
             }
 
-            var user = await userManager.FindByIdAsync(userId);
+            var user = await userManager.FindByIdAsync(userId.ToString());
             if (user == null)
             {
                 return new ProfilePayload(ProfessionalDto.MapData(user, HttpStatusCode.NotFound, "User not found!"));
-            }   
+            }
 
             return new ProfilePayload(ProfessionalDto.MapData(user, HttpStatusCode.OK, successful: true));
         }
+        #endregion
+
+        #region Education Section
+        public async Task<List<Education>> GetEducationAsync([Service] IRepositoryManager repository,
+            [GlobalState] string? apiKey = "")
+        {
+            var userId = repository.User.GetLoggedInOrApiKeyUserId(apiKey!);
+            if (userId.IsEmpty())
+            {
+                return [];
+            }
+
+            return await Task.Run(() => repository.Education
+                .FindAsQueryable(e => e.UserId.Equals(userId.ToString()))
+                .OrderByDescending(e => e.StartDate)
+                .ToList());
+        }
+        #endregion
     }
 }

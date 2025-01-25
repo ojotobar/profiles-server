@@ -6,7 +6,7 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 	<ItemGroup>
-		<PackageReference Include="DRY.MailJetClient.Library" Version="1.0.0-rc1" />
+		<PackageReference Include="DRY.MailJetClient.Library" Version="1.0.0" />
 		<PackageReference Include="Microsoft.AspNetCore.Identity" Version="2.2.0" />
 		<PackageReference Include="Microsoft.IdentityModel.Tokens" Version="7.1.2" />
 		<PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="7.1.2" />

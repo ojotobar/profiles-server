@@ -1,9 +1,8 @@
-﻿using Mongo.Common;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace ProfessionalProfiles.Entities.Models
 {
-    public class ProfessionalLocation : Location
+    public class ProfessionalLocation : EntityLocation
     {
         [Required]
         public string Line1 { get; set; } = string.Empty;

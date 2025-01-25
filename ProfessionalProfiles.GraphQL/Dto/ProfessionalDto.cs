@@ -6,6 +6,7 @@ namespace ProfessionalProfiles.GraphQL.Dto
 {
     public class ProfessionalDto
     {
+        public Guid Id { get; set; } 
         public string FirstName { get; set; } = string.Empty;
         public string LastName { get; set; } = string.Empty;
         public EGender Gender { get; set; }
@@ -20,14 +21,15 @@ namespace ProfessionalProfiles.GraphQL.Dto
         public string? PhoneNumber { get; set; }
 
         // Default props
-        public bool Successful { get; set; }
-        public HttpStatusCode StatusCode { get; set; }
+        public bool IsSuccessful { get; set; }
+        public HttpStatusCode StatusCode { get; set; } = HttpStatusCode.BadRequest;
         public string? Message { get; set; }
 
         public static ProfessionalDto MapData(Professional? user, HttpStatusCode code, string? message = "", bool successful = false)
         {
             return user == null ? new ProfessionalDto() : new ProfessionalDto
             {
+                Id = user.Id,
                 FirstName = user.FirstName!,
                 LastName = user.LastName,
                 OtherName = user.OtherName,
@@ -40,7 +42,7 @@ namespace ProfessionalProfiles.GraphQL.Dto
                 LastLogin = user.LastLogin,
                 UpdatedOn = user.UpdatedOn,
                 Location = user.Location,
-                Successful = successful,
+                IsSuccessful = successful,
                 StatusCode = code,
                 Message = message
             };

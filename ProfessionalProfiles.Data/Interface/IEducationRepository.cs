@@ -10,5 +10,6 @@ namespace ProfessionalProfiles.Data.Interface
         Task EditAsync(Expression<Func<Education, bool>> expression, Education entity);
         IQueryable<Education> FindAsQueryable(Expression<Func<Education, bool>> expression);
         Task<Education?> FindOneAsync(Expression<Func<Education, bool>> expression);
+        Task<List<Education>> FindAsync(Expression<Func<Education, bool>> expression);
     }
 }

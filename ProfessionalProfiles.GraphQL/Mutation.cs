@@ -14,6 +14,9 @@ using CSharpTypes.Extensions.String;
 using CSharpTypes.Extensions.Object;
 using MongoDB.Driver;
 using HotChocolate.Authorization;
+using ProfessionalProfiles.GraphQL.Validations.Account;
+using ProfessionalProfiles.GraphQL.Educations;
+using ProfessionalProfiles.GraphQL.Validations.Education;
 
 namespace ProfessionalProfiles.GraphQL
 {
@@ -149,12 +152,12 @@ namespace ProfessionalProfiles.GraphQL
             var validate = await service.User.Validate(input.Email, input.Password);
             if (!validate.Successful)
             {
-                return new LoginPayload(LoginAccess.Initialize(input.Email, message: validate.Message));
+                return new LoginPayload(LoginAccess.Initialize(input.Email, message: validate.Message!));
             }
 
             var tokenDto = await service.User.CreateAccessToken(validate, user!);
 
-            return new LoginPayload(LoginAccess.Initialize(tokenDto.UserName!, tokenDto.AccessToken, validate.Message, tokenDto.Successful));
+            return new LoginPayload(LoginAccess.Initialize(tokenDto.UserName!, tokenDto.AccessToken, validate.Message!, tokenDto.Successful));
         }
 
         /// <summary>
@@ -287,6 +290,109 @@ namespace ProfessionalProfiles.GraphQL
             }
 
             return new UserCommonPayload(UserGenericPayload.Initialize(user.Email!, $"Password changed successfully.", HttpStatusCode.OK, true));
+        }
+        #endregion
+
+        #region Profile Section
+        /// <summary>
+        /// Adds user current location
+        /// </summary>
+        /// <param name="input"></param>
+        /// <param name="repository"></param>
+        /// <param name="userManager"></param>
+        /// <returns></returns>
+        [Authorize]
+        public async Task<UserCommonPayload> AddUserLocationAsync(UserLocationInput input,
+            [Service]UserManager<Professional> userManager, IRepositoryManager repository)
+        {
+            var validator = new UserLocationInputValidator().Validate(input);
+            if (!validator.IsValid)
+            {
+                var message = validator.Errors.FirstOrDefault()?.ErrorMessage ?? "Invalid input! Please try again.";
+                return new UserCommonPayload(UserGenericPayload.Initialize(string.Empty, message, HttpStatusCode.BadRequest));
+            }
+
+            var userId = repository.User.GetLoggedInUserId();
+            if(userId.IsNullOrEmpty())
+            {
+                return new UserCommonPayload(UserGenericPayload.Initialize(string.Empty, "Access denied", HttpStatusCode.Unauthorized));
+            }
+
+            var user = await userManager.FindByIdAsync(userId);
+            if(user == null)
+            {
+                return new UserCommonPayload(UserGenericPayload.Initialize(string.Empty, "No user found", HttpStatusCode.NotFound));
+            }
+
+            var location = new ProfessionalLocation
+            {
+                City = input.City,
+                Country = input.Country,
+                Line1 = input.Line1,
+                Line2 = input.Line2,
+                PostalCode = input.PostalCode,
+                State = input.State,
+                Latitude = input.Latitude,
+                Longitude = input.Longitude
+            };
+
+            user.Location = location;
+            await userManager.UpdateAsync(user);
+            return new UserCommonPayload(UserGenericPayload.Initialize(user.Email!, "Location successfully added", HttpStatusCode.OK, true));
+        }
+        #endregion
+
+        #region Education Region
+        /// <summary>
+        /// Add education records
+        /// </summary>
+        /// <param name="input"></param>
+        /// <param name="repository"></param>
+        /// <param name="userManager"></param>
+        /// <returns></returns>
+        [Authorize]
+        public async Task<UserCommonPayload> AddEducationAsync(EducationInput input,
+            IRepositoryManager repository, [Service] UserManager<Professional> userManager)
+        {
+            var loggedInUserId = repository.User.GetLoggedInUserId();
+            if (loggedInUserId.IsNullOrEmpty())
+            {
+                return new UserCommonPayload(UserGenericPayload.Initialize(string.Empty, "", HttpStatusCode.Unauthorized));
+            }
+
+            var user = await userManager.FindByIdAsync(loggedInUserId);
+            if(user == null)
+            {
+                return new UserCommonPayload(UserGenericPayload.Initialize(string.Empty, "User not found", HttpStatusCode.NotFound));
+            }
+
+            var validator = new AddEducationInputValidator().Validate(input);
+            if (!validator.IsValid)
+            {
+                var message = validator.Errors.FirstOrDefault()?.ErrorMessage ?? "Invalid input";
+                return new UserCommonPayload(UserGenericPayload.Initialize(string.Empty, message, HttpStatusCode.BadRequest));
+            }
+
+            var education = new Education
+            {
+                InstitutionName = input.SchoolName,
+                Level = input.Level,
+                Major = input.Course,
+                StartDate = input.StartDate,
+                EndDate = input.EndDate,
+                UserId = loggedInUserId,
+                Location = new EntityLocation
+                {
+                    City = input.Location.City,
+                    Country = input.Location.Country,
+                    State = input.Location.State,
+                    Longitude = input.Location.Longitude,
+                    Latitude = input.Location.Latitude
+                }
+            };
+
+            await repository.Education.AddAsync(education);
+            return new UserCommonPayload(UserGenericPayload.Initialize(user!.Email, "Education record added successfully", HttpStatusCode.OK, true));
         }
         #endregion
     }

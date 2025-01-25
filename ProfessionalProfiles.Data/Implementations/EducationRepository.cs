@@ -28,5 +28,8 @@ namespace ProfessionalProfiles.Data.Implementations
 
         public IQueryable<Education> FindAsQueryable(Expression<Func<Education, bool>> expression) =>
             GetAsQueryable(expression);
+
+        public async Task<List<Education>> FindAsync(Expression<Func<Education, bool>> expression) =>
+            await GetManyAsync(expression);
     }
 }

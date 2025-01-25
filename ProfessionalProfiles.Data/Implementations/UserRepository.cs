@@ -1,10 +1,14 @@
 ﻿using CSharpTypes.Extensions.Enumeration;
+using CSharpTypes.Extensions.Guid;
 using CSharpTypes.Extensions.String;
+using Mailjet.Client.Resources;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
+using Mongo.Common.MongoDB;
 using ProfessionalProfiles.Data.Interface;
 using ProfessionalProfiles.Entities.Enums;
 using ProfessionalProfiles.Entities.Models;
+using ProfessionalProfiles.Shared.Extensions;
 using System.Security.Claims;
 
 namespace ProfessionalProfiles.Data.Implementations
@@ -28,6 +32,16 @@ namespace ProfessionalProfiles.Data.Implementations
         public string GetLoggedInUserId()
         {
             return GetUserId();
+        }
+
+        public Guid GetLoggedInOrApiKeyUserId(string apiKey)
+        {
+            var userId = GetLoggedInUserId().ToGuid();
+            userId = userId.IsEmpty() ?
+                StringTypeExtensions.DecodeBase64StringAsGuid(apiKey ?? string.Empty) :
+                userId;
+
+            return userId;
         }
 
         /// <summary>

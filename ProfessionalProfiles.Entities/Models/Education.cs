@@ -1,4 +1,6 @@
-﻿using Mongo.Common;
+﻿using CSharpTypes.Extensions.Enumeration;
+using Mongo.Common;
+using ProfessionalProfiles.Entities.Enums;
 using System.ComponentModel.DataAnnotations;
 
 namespace ProfessionalProfiles.Entities.Models
@@ -11,9 +13,15 @@ namespace ProfessionalProfiles.Entities.Models
         [Required]
         public string InstitutionName { get; set; } = string.Empty;
         [Required]
+        public EEducationLevel Level { get; set; }
+        public string LevelDescription 
+            => Level.GetDescription();
+        [Required]
+        public string Major { get; set; } = string.Empty;
+        [Required]
         public DateTime StartDate { get; set; }
-        public DateTime EndDate { get; set; }
-        public Location? Location { get; set; }
+        public DateTime? EndDate { get; set; }
+        public EntityLocation? Location { get; set; }
         public DateTime CreatedOn { get; set; } = DateTime.UtcNow;
         public DateTime UpdatedOn { get; set; } = DateTime.UtcNow;
         public bool IsDeprecated { get; set; }
