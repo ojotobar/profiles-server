@@ -1,0 +1,59 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+            background-color: #f9f9f9;
+            color: #333;
+        }
+
+        .email-container {
+            max-width: 600px;
+            margin: 20px auto;
+            background-color: #ffffff;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .email-body {
+            font-size: 16px;
+        }
+
+        .email-footer {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 14px;
+            color: #777;
+        }
+
+        a {
+            color: #007BFF;
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+        p {
+            margin: 3px auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <div class="email-body">
+            [[specific_message]]
+        </div>
+        <div class="email-footer">
+            <p>&copy; [[curr_year]] [[company_name]]. All rights reserved.</p>
+            <p><a href="[[base_url]]/faqs">FAQs</a> | <a href="[[base_url]]/contact">Contact Us</a></p>
+        </div>
+    </div>
+</body>
+</html>

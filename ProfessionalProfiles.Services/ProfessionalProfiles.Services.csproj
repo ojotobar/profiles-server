@@ -1,0 +1,19 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+	<ItemGroup>
+		<PackageReference Include="DRY.MailJetClient.Library" Version="1.0.0-rc1" />
+		<PackageReference Include="Microsoft.AspNetCore.Identity" Version="2.2.0" />
+		<PackageReference Include="Microsoft.IdentityModel.Tokens" Version="7.1.2" />
+		<PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="7.1.2" />
+	</ItemGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\ProfessionalProfiles.Data\ProfessionalProfiles.Data.csproj" />
+		<ProjectReference Include="..\ProfessionalProfiles.Entities\ProfessionalProfiles.Entities.csproj" />
+		<ProjectReference Include="..\ProfessionalProfiles.Shared\ProfessionalProfiles.Shared.csproj" />
+	</ItemGroup>
+</Project>
