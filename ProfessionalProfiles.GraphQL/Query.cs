@@ -74,6 +74,12 @@ namespace ProfessionalProfiles.GraphQL
         #endregion
 
         #region Education Section
+        /// <summary>
+        /// Gets a list of user edication records
+        /// </summary>
+        /// <param name="repository"></param>
+        /// <param name="apiKey"></param>
+        /// <returns></returns>
         public async Task<List<Education>> GetEducationAsync([Service] IRepositoryManager repository,
             [GlobalState] string? apiKey = "")
         {
