@@ -17,6 +17,7 @@ using HotChocolate.Authorization;
 using ProfessionalProfiles.GraphQL.Validations.Account;
 using ProfessionalProfiles.GraphQL.Educations;
 using ProfessionalProfiles.GraphQL.Validations.Education;
+using ProfessionalProfiles.GraphQL.Dto;
 
 namespace ProfessionalProfiles.GraphQL
 {
@@ -342,7 +343,7 @@ namespace ProfessionalProfiles.GraphQL
         }
         #endregion
 
-        #region Education Region
+        #region Education Section
         /// <summary>
         /// Add education records
         /// </summary>
@@ -354,6 +355,13 @@ namespace ProfessionalProfiles.GraphQL
         public async Task<UserCommonPayload> AddEducationAsync(EducationInput input,
             IRepositoryManager repository, [Service] UserManager<Professional> userManager)
         {
+            var validator = new AddEducationInputValidator().Validate(input);
+            if (!validator.IsValid)
+            {
+                var message = validator.Errors.FirstOrDefault()?.ErrorMessage ?? "Invalid input";
+                return new UserCommonPayload(UserGenericPayload.Initialize(string.Empty, message, HttpStatusCode.BadRequest));
+            }
+
             var loggedInUserId = repository.User.GetLoggedInUserId();
             if (loggedInUserId.IsNullOrEmpty())
             {
@@ -366,6 +374,22 @@ namespace ProfessionalProfiles.GraphQL
                 return new UserCommonPayload(UserGenericPayload.Initialize(string.Empty, "User not found", HttpStatusCode.NotFound));
             }
 
+            var education = EducationDto.CreateMap(loggedInUserId, input);
+            await repository.Education.AddAsync(education);
+            return new UserCommonPayload(UserGenericPayload.Initialize(user!.Email, "Education record added successfully", HttpStatusCode.OK, true));
+        }
+
+        /// <summary>
+        /// Update education records
+        /// </summary>
+        /// <param name="input"></param>
+        /// <param name="repository"></param>
+        /// <param name="userManager"></param>
+        /// <returns></returns>
+        [Authorize]
+        public async Task<UserCommonPayload> UpdateEducationAsync(Guid id, EducationInput input,
+            IRepositoryManager repository, [Service] UserManager<Professional> userManager)
+        {
             var validator = new AddEducationInputValidator().Validate(input);
             if (!validator.IsValid)
             {
@@ -373,26 +397,36 @@ namespace ProfessionalProfiles.GraphQL
                 return new UserCommonPayload(UserGenericPayload.Initialize(string.Empty, message, HttpStatusCode.BadRequest));
             }
 
-            var education = new Education
+            var existingRecord = await repository.Education.FindOneAsync(e => e.Id.Equals(id));
+            if (existingRecord == null)
             {
-                InstitutionName = input.SchoolName,
-                Level = input.Level,
-                Major = input.Course,
-                StartDate = input.StartDate,
-                EndDate = input.EndDate,
-                UserId = loggedInUserId,
-                Location = new EntityLocation
-                {
-                    City = input.Location.City,
-                    Country = input.Location.Country,
-                    State = input.Location.State,
-                    Longitude = input.Location.Longitude,
-                    Latitude = input.Location.Latitude
-                }
-            };
+                return new UserCommonPayload(UserGenericPayload.Initialize(string.Empty, "Record not found", HttpStatusCode.NotFound));
+            }
 
-            await repository.Education.AddAsync(education);
-            return new UserCommonPayload(UserGenericPayload.Initialize(user!.Email, "Education record added successfully", HttpStatusCode.OK, true));
+            existingRecord = EducationDto.CreateMap(existingRecord, input);
+            await repository.Education.EditAsync(e => e.Id.Equals(existingRecord.Id), existingRecord);
+            return new UserCommonPayload(UserGenericPayload.Initialize(string.Empty, "Education record updated successfully", HttpStatusCode.OK, true));
+        }
+
+        /// <summary>
+        /// Deprecates education records
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="repository"></param>
+        /// <returns></returns>
+        [Authorize]
+        public async Task<UserCommonPayload> DeleteEducationAsync(Guid id, [Service] IRepositoryManager repository)
+        {
+            var existingRecord = await repository.Education.FindOneAsync(e => !e.IsDeprecated && e.Id.Equals(id));
+            if (existingRecord == null)
+            {
+                return new UserCommonPayload(UserGenericPayload.Initialize(string.Empty, "Record not found", HttpStatusCode.NotFound));
+            }
+
+            existingRecord.IsDeprecated = true;
+            existingRecord.UpdatedOn = DateTime.UtcNow;
+            await repository.Education.EditAsync(e => e.Id.Equals(existingRecord.Id), existingRecord);
+            return new UserCommonPayload(UserGenericPayload.Initialize(string.Empty, "Education record deleted successfully", HttpStatusCode.OK, true));
         }
         #endregion
     }

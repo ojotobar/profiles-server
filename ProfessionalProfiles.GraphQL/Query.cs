@@ -80,7 +80,7 @@ namespace ProfessionalProfiles.GraphQL
         /// <param name="repository"></param>
         /// <param name="apiKey"></param>
         /// <returns></returns>
-        public async Task<List<Education>> GetEducationAsync([Service] IRepositoryManager repository,
+        public async Task<List<Education>> GetEducationsAsync([Service] IRepositoryManager repository,
             [GlobalState] string? apiKey = "")
         {
             var userId = repository.User.GetLoggedInOrApiKeyUserId(apiKey!);
@@ -90,9 +90,34 @@ namespace ProfessionalProfiles.GraphQL
             }
 
             return await Task.Run(() => repository.Education
-                .FindAsQueryable(e => e.UserId.Equals(userId.ToString()))
+                .FindAsQueryable(e => !e.IsDeprecated && e.UserId.Equals(userId.ToString()))
                 .OrderByDescending(e => e.StartDate)
                 .ToList());
+        }
+
+        /// <summary>
+        /// Gets education by id
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="repository"></param>
+        /// <param name="apiKey"></param>
+        /// <returns></returns>
+        public async Task<Education?> GetEducationAsync(Guid id, [Service] IRepositoryManager repository,
+            [GlobalState] string? apiKey = "")
+        {
+            var userId = repository.User.GetLoggedInOrApiKeyUserId(apiKey!);
+            if (userId.IsEmpty())
+            {
+                return null;
+            }
+
+            var record = await repository.Education.FindOneAsync(e => e.Id == id && !e.IsDeprecated);
+            if (record == null)
+            {
+                return null;
+            }
+
+            return record;
         }
         #endregion
     }

@@ -21,7 +21,7 @@ namespace ProfessionalProfiles.Entities.Models
         [Required]
         public DateTime StartDate { get; set; }
         public DateTime? EndDate { get; set; }
-        public EntityLocation? Location { get; set; }
+        public EntityLocation Location { get; set; } = new();
         public DateTime CreatedOn { get; set; } = DateTime.UtcNow;
         public DateTime UpdatedOn { get; set; } = DateTime.UtcNow;
         public bool IsDeprecated { get; set; }
