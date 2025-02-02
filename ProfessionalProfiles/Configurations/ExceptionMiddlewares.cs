@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Diagnostics;
 using Newtonsoft.Json;
-using ProfessionalProfiles.GraphQL.General;
+using ProfessionalProfiles.Graph.General;
 using System.Net;
 
 namespace ProfessionalProfiles.Configurations
