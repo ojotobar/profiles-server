@@ -15,7 +15,6 @@ using ProfessionalProfiles.Graph.Validations.Account;
 using ProfessionalProfiles.Graph.Validations.Education;
 using ProfessionalProfiles.Services.Interfaces;
 using System.Net;
-using System.Net.NetworkInformation;
 
 namespace ProfessionalProfiles.Graph
 {
