@@ -364,8 +364,9 @@ namespace ProfessionalProfiles.Graph
             }
 
             var user = userValidationResult.User;
+            var fileName = GetFileName(user, file, ECloudFolder.ProfilePics);
             await using Stream stream = file.OpenReadStream();
-            var uploadResult = await service.Firebase.UploadFileAsync(stream, ECloudFolder.ProfilePics, file.Name.Replace(" ", "_"), CancellationToken.None);
+            var uploadResult = await service.Firebase.UploadFileAsync(stream, ECloudFolder.ProfilePics, fileName, CancellationToken.None);
             if (uploadResult.Success)
             {
                 user.ProfilePicture = uploadResult.Link;
@@ -402,8 +403,9 @@ namespace ProfessionalProfiles.Graph
             }
 
             var user = userValidationResult.User;
+            var fileName = GetFileName(user, file, ECloudFolder.Resume);
             await using Stream stream = file.OpenReadStream();
-            var uploadResult = await service.Firebase.UploadFileAsync(stream, ECloudFolder.Resume, file.Name.Replace(" ", "_"), CancellationToken.None);
+            var uploadResult = await service.Firebase.UploadFileAsync(stream, ECloudFolder.Resume, fileName, CancellationToken.None);
             if (uploadResult.Success)
             {
                 user.ResumeLink = uploadResult.Link;
@@ -558,6 +560,22 @@ namespace ProfessionalProfiles.Graph
             }
 
             return new UserValidationPayload(user, "", HttpStatusCode.OK, true);
+        }
+
+        private string GetFileName(Professional user, IFile file, ECloudFolder folder)
+        {
+            string ext = System.IO.Path.GetExtension(file.Name);
+            var fileName = file.Name.Replace(" ", "_");
+            if (ext.IsNotNullOrEmpty())
+            {
+                var split = user.Id.ToString().Split("-");
+                var idSnippet = split.Length > 0 ? $"_{split[0]}" : "";
+                fileName = folder == ECloudFolder.Resume ? 
+                    $"{user.LastName}_{user.FirstName}{idSnippet}_CV{ext}" :
+                    $"{user.LastName}_{user.FirstName}{idSnippet}{ext}"; ;
+            }
+
+            return fileName;
         }
         #endregion
     }
