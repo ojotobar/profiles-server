@@ -20,5 +20,7 @@ namespace ProfessionalProfiles.Entities.Models
         public bool IsDeprecated { get; set; }
         public ProfessionalLocation? Location { get; set; }
         public long KeyMarker { get; set; }
+        public string? ProfilePicture { get; set; }
+        public string? ResumeLink { get; set; }
     }
 }

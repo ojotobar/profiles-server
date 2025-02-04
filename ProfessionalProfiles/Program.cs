@@ -20,7 +20,8 @@ builder.Services.AddGraphQLServer()
     .AddQueryType<Query>()
     .AddMutationType<Mutation>()
     .AddType<UploadType>()
-    .AddHttpRequestInterceptor<CustomeRequestInterceptor>();
+    .AddHttpRequestInterceptor<CustomeRequestInterceptor>()
+    .AddMutationConventions();
 
 var app = builder.Build();
 var logger = app.Services.GetRequiredService<ILogger<Program>>();

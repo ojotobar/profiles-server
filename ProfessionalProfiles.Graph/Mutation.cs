@@ -10,15 +10,21 @@ using ProfessionalProfiles.Graph.Account;
 using ProfessionalProfiles.Graph.Dto;
 using ProfessionalProfiles.Graph.Educations;
 using ProfessionalProfiles.Graph.General;
+using ProfessionalProfiles.Graph.Profile;
 using ProfessionalProfiles.Graph.Validations.Account;
 using ProfessionalProfiles.Graph.Validations.Education;
 using ProfessionalProfiles.Services.Interfaces;
 using System.Net;
+using System.Net.NetworkInformation;
 
 namespace ProfessionalProfiles.Graph
 {
     public class Mutation
     {
+        private const long MAXIMAGESIZE = 524228;//512kb
+        private readonly List<string> ALLOWEDIMAGEFORMATS = [".png", ".jpg", ".jpeg"];
+        private readonly List<string> ALLOWEDDOCFORMATS = [".pdf", ".docx", ".doc"];
+
         #region Account Section
         /// <summary>
         /// Registers a new user
@@ -310,15 +316,10 @@ namespace ProfessionalProfiles.Graph
             }
 
             var userId = repository.User.GetLoggedInUserId();
-            if (userId.IsNullOrEmpty())
+            var userValidationResult = await ValidateLoggedinUser(userId, userManager);
+            if (!userValidationResult.IsSuccessful || userValidationResult.User == null)
             {
-                return new UserCommonPayload(UserGenericPayload.Initialize(string.Empty, "Access denied", HttpStatusCode.Unauthorized));
-            }
-
-            var user = await userManager.FindByIdAsync(userId);
-            if (user == null)
-            {
-                return new UserCommonPayload(UserGenericPayload.Initialize(string.Empty, "No user found", HttpStatusCode.NotFound));
+                return new UserCommonPayload(UserGenericPayload.Initialize("", userValidationResult.Message, userValidationResult.StatusCode));
             }
 
             var location = new ProfessionalLocation
@@ -333,14 +334,84 @@ namespace ProfessionalProfiles.Graph
                 Longitude = input.Longitude
             };
 
-            user.Location = location;
-            await userManager.UpdateAsync(user);
-            return new UserCommonPayload(UserGenericPayload.Initialize(user.Email!, "Location successfully added", HttpStatusCode.OK, true));
+            userValidationResult.User.Location = location;
+            await userManager.UpdateAsync(userValidationResult.User);
+            return new UserCommonPayload(UserGenericPayload.Initialize(userValidationResult.User.Email!, "Location successfully added", HttpStatusCode.OK, true));
         }
 
-        public async Task<UserCommonPayload> UploadProfilePhotoAsync(UserManager<Professional> userManager, IFile file)
+        /// <summary>
+        /// Upload user profile photo
+        /// </summary>
+        /// <param name="userManager"></param>
+        /// <param name="repository"></param>
+        /// <param name="file"></param>
+        /// <returns></returns>
+        [Authorize]
+        public async Task<UploadResult> UploadProfilePhotoAsync([Service]UserManager<Professional> userManager, 
+            [Service]IRepositoryManager repository, [Service] IServiceManager service, IFile file)
         {
-            return new UserCommonPayload(UserGenericPayload.Initialize("", "", HttpStatusCode.OK, true));
+            var imageValidationResult = ValidateImageFile(file);
+            if (!imageValidationResult.Payload.IsSuccessful)
+            {
+                return new UploadResult(Guid.Empty, "", imageValidationResult.Payload.Message);
+            }
+
+            var userId = repository.User.GetLoggedInUserId();
+            var userValidationResult = await ValidateLoggedinUser(userId, userManager);
+            if (!userValidationResult.IsSuccessful || userValidationResult.User == null)
+            {
+                return new UploadResult(Guid.Empty, "", userValidationResult.Message);
+            }
+
+            var user = userValidationResult.User;
+            await using Stream stream = file.OpenReadStream();
+            var uploadResult = await service.Firebase.UploadFileAsync(stream, ECloudFolder.ProfilePics, file.Name.Replace(" ", "_"), CancellationToken.None);
+            if (uploadResult.Success)
+            {
+                user.ProfilePicture = uploadResult.Link;
+                await userManager.UpdateAsync(user);
+                return new UploadResult(user.Id, uploadResult.Link, "Profile picture successfully uploaded", true);
+            }
+
+            return new UploadResult(user.Id, "", "Upload to server failed. Please try again.");
+        }
+
+        /// <summary>
+        /// Upload User CV
+        /// </summary>
+        /// <param name="userManager"></param>
+        /// <param name="repository"></param>
+        /// <param name="service"></param>
+        /// <param name="file"></param>
+        /// <returns></returns>
+        [Authorize]
+        public async Task<UploadResult> UploadResumeAsync([Service] UserManager<Professional> userManager,
+            [Service] IRepositoryManager repository, [Service] IServiceManager service, IFile file)
+        {
+            var imageValidationResult = ValidateDocFiles(file);
+            if (!imageValidationResult.Payload.IsSuccessful)
+            {
+                return new UploadResult(Guid.Empty, "", imageValidationResult.Payload.Message);
+            }
+
+            var userId = repository.User.GetLoggedInUserId();
+            var userValidationResult = await ValidateLoggedinUser(userId, userManager);
+            if (!userValidationResult.IsSuccessful || userValidationResult.User == null)
+            {
+                return new UploadResult(Guid.Empty, string.Empty, userValidationResult.Message);
+            }
+
+            var user = userValidationResult.User;
+            await using Stream stream = file.OpenReadStream();
+            var uploadResult = await service.Firebase.UploadFileAsync(stream, ECloudFolder.Resume, file.Name.Replace(" ", "_"), CancellationToken.None);
+            if (uploadResult.Success)
+            {
+                user.ResumeLink = uploadResult.Link;
+                await userManager.UpdateAsync(user);
+                return new UploadResult(user.Id, uploadResult.Link, "File successfully uploaded", uploadResult.Success);
+            }
+
+            return new UploadResult(user.Id, string.Empty, "Upload to server failed. Please try again.");
         }
 
         #endregion
@@ -429,6 +500,64 @@ namespace ProfessionalProfiles.Graph
             existingRecord.UpdatedOn = DateTime.UtcNow;
             await repository.Education.EditAsync(e => e.Id.Equals(existingRecord.Id), existingRecord);
             return new UserCommonPayload(UserGenericPayload.Initialize(string.Empty, "Education record deleted successfully", HttpStatusCode.OK, true));
+        }
+        #endregion
+
+        #region Validations
+        private UserCommonPayload ValidateImageFile(IFile file)
+        {
+            if (file.IsNull() || file.Length <= 0)
+            {
+                return new UserCommonPayload(UserGenericPayload.Initialize("", "Invalid file", HttpStatusCode.BadRequest));
+            }
+
+            if (file.Length > MAXIMAGESIZE)
+            {
+                return new UserCommonPayload(UserGenericPayload.Initialize("", $"File size exceeds limit of {MAXIMAGESIZE / 1024}kb", HttpStatusCode.BadRequest));
+            }
+
+            if (!ALLOWEDIMAGEFORMATS.Any(f => file.Name.EndsWith(f)))
+            {
+                return new UserCommonPayload(UserGenericPayload.Initialize("", $"Invalid image format. Allowed formats: {string.Join(", ", ALLOWEDIMAGEFORMATS)}", HttpStatusCode.BadRequest));
+            }
+
+            return new UserCommonPayload(UserGenericPayload.Initialize("", "", HttpStatusCode.OK, true));
+        }
+
+        private UserCommonPayload ValidateDocFiles(IFile file)
+        {
+            if (file.IsNull() || file.Length <= 0)
+            {
+                return new UserCommonPayload(UserGenericPayload.Initialize("", "Invalid file", HttpStatusCode.BadRequest));
+            }
+
+            if (file.Length > MAXIMAGESIZE)
+            {
+                return new UserCommonPayload(UserGenericPayload.Initialize("", $"File size exceeds limit of {MAXIMAGESIZE / 1024}kb", HttpStatusCode.BadRequest));
+            }
+
+            if (!ALLOWEDDOCFORMATS.Any(f => file.Name.EndsWith(f)))
+            {
+                return new UserCommonPayload(UserGenericPayload.Initialize("", $"Invalid document format. Allowed formats: {string.Join(", ", ALLOWEDIMAGEFORMATS)}", HttpStatusCode.BadRequest));
+            }
+
+            return new UserCommonPayload(UserGenericPayload.Initialize("", "", HttpStatusCode.OK, true));
+        }
+
+        private async Task<UserValidationPayload> ValidateLoggedinUser(string userId, UserManager<Professional> userManager)
+        {
+            if (userId.IsNullOrEmpty())
+            {
+                return new UserValidationPayload(null, "Access denied", HttpStatusCode.Unauthorized);
+            }
+
+            var user = await userManager.FindByIdAsync(userId);
+            if (user == null)
+            {
+                return new UserValidationPayload(null, "No user found", HttpStatusCode.NotFound);
+            }
+
+            return new UserValidationPayload(user, "", HttpStatusCode.OK, true);
         }
         #endregion
     }

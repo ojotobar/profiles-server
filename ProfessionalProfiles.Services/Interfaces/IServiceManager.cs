@@ -4,5 +4,6 @@
     {
         IEmailService Email { get; }
         IUserService User { get; }
+        IFirebaseService Firebase { get; }
     }
 }
