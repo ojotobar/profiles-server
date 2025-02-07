@@ -32,19 +32,19 @@ namespace ProfessionalProfiles.Graph
         /// <param name="repository"></param>
         /// <param name="userManager"></param>
         /// <returns></returns>
-        public async Task<UserCommonPayload> RegisterUserAsync(RegisterUserInput input,
+        public async Task<AccountResult> RegisterUserAsync(RegisterUserInput input,
             [Service] UserManager<Professional> userManager, [GlobalState] string? origin,
             [Service] IRepositoryManager repository, [Service] IServiceManager service)
         {
             if (!input.MatchPassword)
             {
-                return new UserCommonPayload(UserGenericPayload.Initialize(string.Empty, "Password and Confirm Password fields must match", HttpStatusCode.BadRequest));
+                return new AccountResult(string.Empty, "Password and Confirm Password fields must match");
             }
 
             var user = await userManager.FindByEmailAsync(input.EmailAddress);
             if (user != null)
             {
-                return new UserCommonPayload(UserGenericPayload.Initialize(string.Empty, "A user already exists with this email", HttpStatusCode.Conflict));
+                return new AccountResult(string.Empty, "A user already exists with this email");
             }
 
             user = new Professional
@@ -61,7 +61,7 @@ namespace ProfessionalProfiles.Graph
             var result = await userManager.CreateAsync(user, input.Password);
             if (!result.Succeeded)
             {
-                return new UserCommonPayload(UserGenericPayload.Initialize(string.Empty, $"Registration failed. {result.Errors.FirstOrDefault()?.Description}", HttpStatusCode.BadRequest));
+                return new AccountResult(string.Empty, $"Registration failed. {result.Errors.FirstOrDefault()?.Description}");
             }
 
             var loggedInUserRoles = await repository.User.GetUserRoles();
@@ -72,16 +72,16 @@ namespace ProfessionalProfiles.Graph
             if (!roleResult.Succeeded)
             {
                 await userManager.DeleteAsync(user);
-                return new UserCommonPayload(UserGenericPayload.Initialize(string.Empty, $"Registration failed. {roleResult.Errors.FirstOrDefault()?.Description}", HttpStatusCode.BadRequest));
+                return new AccountResult(string.Empty, $"Registration failed. {roleResult.Errors.FirstOrDefault()?.Description}");
             }
 
             var mailSent = await service.Email.SendAccountConfirmationEmail(user, origin!);
             if (!mailSent)
             {
                 await userManager.DeleteAsync(user);
-                return new UserCommonPayload(UserGenericPayload.Initialize(string.Empty, $"Registration failed. Please try again.", HttpStatusCode.BadRequest));
+                return new AccountResult(string.Empty, $"Registration failed. Please try again.");
             }
-            return new UserCommonPayload(UserGenericPayload.Initialize(user.Email, "User registration successful. Please verify your account.", HttpStatusCode.OK, true));
+            return new AccountResult(user.Email, "User registration successful. Please verify your account.", true);
         }
 
         /// <summary>
@@ -91,18 +91,18 @@ namespace ProfessionalProfiles.Graph
         /// <param name="userManager"></param>
         /// <param name="repository"></param>
         /// <returns></returns>
-        public async Task<UserCommonPayload> VerifyAccountAsync(VerifyAccountInput input,
+        public async Task<AccountResult> VerifyAccountAsync(VerifyAccountInput input,
             [Service] UserManager<Professional> userManager, [Service] IRepositoryManager repository)
         {
             if (input.Email.IsNullOrEmpty() || input.OTP.IsNullOrEmpty())
             {
-                return new UserCommonPayload(UserGenericPayload.Initialize(string.Empty, $"Invalid email or verification code. Please try again.", HttpStatusCode.BadRequest));
+                return new AccountResult(string.Empty, $"Invalid email or verification code. Please try again.");
             }
 
             var user = await userManager.FindByEmailAsync(input.Email);
             if (user == null)
             {
-                return new UserCommonPayload(UserGenericPayload.Initialize(string.Empty, $"No user found with the email: {input.Email}", HttpStatusCode.BadRequest));
+                return new AccountResult(string.Empty, $"No user found with the email: {input.Email}");
             }
 
             var code = await repository.OneTimePass
@@ -113,7 +113,7 @@ namespace ProfessionalProfiles.Graph
 
             if (code.IsNull())
             {
-                return new UserCommonPayload(UserGenericPayload.Initialize(string.Empty, $"Invalid or expired verification code. Please generate a new one to continue.", HttpStatusCode.BadRequest));
+                return new AccountResult(string.Empty, $"Invalid or expired verification code. Please generate a new one to continue.");
             }
 
             //Update user
@@ -127,7 +127,7 @@ namespace ProfessionalProfiles.Graph
             code.Used = true;
             await repository.OneTimePass.EditAsync(c => c.Id.Equals(code.Id), code);
 
-            return new UserCommonPayload(UserGenericPayload.Initialize(user?.Email!, "Account successfully verified. Please proceed to log in.", HttpStatusCode.OK, true));
+            return new AccountResult(user?.Email!, "Account successfully verified. Please proceed to log in.", true);
         }
 
         /// <summary>
@@ -137,29 +137,29 @@ namespace ProfessionalProfiles.Graph
         /// <param name="service"></param>
         /// <param name="userManager"></param>
         /// <returns></returns>
-        public async Task<LoginPayload> LoginUserAsync(LoginInput input,
+        public async Task<LoginResult> LoginUserAsync(LoginInput input,
             [Service] IServiceManager service, [Service] UserManager<Professional> userManager)
         {
             if (input.IsNull() || input.Email.IsNullOrEmpty() || input.Password.IsNullOrEmpty())
             {
-                return new LoginPayload(LoginAccess.Initialize(input.Email, message: "Invalid request."));
+                return new LoginResult("", "", $"Invalid request");
             }
 
             var user = await userManager.FindByEmailAsync(input.Email);
             if (user.IsNull())
             {
-                return new LoginPayload(LoginAccess.Initialize(input.Email, message: $"No user found with the email: {input.Email}"));
+                return new LoginResult("", input.Email, $"No user found with the email: {input.Email}");
             }
 
             var validate = await service.User.Validate(input.Email, input.Password);
             if (!validate.Successful)
             {
-                return new LoginPayload(LoginAccess.Initialize(input.Email, message: validate.Message!));
+                return new LoginResult("", input.Email, validate.Message!);
             }
 
             var tokenDto = await service.User.CreateAccessToken(validate, user!);
 
-            return new LoginPayload(LoginAccess.Initialize(tokenDto.UserName!, tokenDto.AccessToken, validate.Message!, tokenDto.Successful));
+            return new LoginResult(tokenDto.AccessToken, tokenDto.UserName, validate.Message!, true);
         }
 
         /// <summary>
@@ -170,19 +170,19 @@ namespace ProfessionalProfiles.Graph
         /// <param name="origin"></param>
         /// <param name="service"></param>
         /// <returns></returns>
-        public async Task<UserCommonPayload> ResendCodeAsync(ResendCodeInput input,
+        public async Task<AccountResult> ResendCodeAsync(ResendCodeInput input,
             [Service] UserManager<Professional> userManager, [GlobalState] string? origin,
             [Service] IServiceManager service)
         {
             var user = await userManager.FindByEmailAsync(input.Email);
             if (user == null)
             {
-                return new UserCommonPayload(UserGenericPayload.Initialize(string.Empty, "No user found with this email", HttpStatusCode.NotFound));
+                return new AccountResult(string.Empty, "No user found with this email");
             }
 
             if (user.EmailConfirmed && input.CodeType == EOtpType.Verification)
             {
-                return new UserCommonPayload(UserGenericPayload.Initialize(string.Empty, "Account already verified. Please login", HttpStatusCode.Found));
+                return new AccountResult(string.Empty, "Account already verified. Please login");
             }
 
             var mailSent = input.CodeType == EOtpType.Verification ?
@@ -194,9 +194,9 @@ namespace ProfessionalProfiles.Graph
                 {
                     await userManager.DeleteAsync(user);
                 }
-                return new UserCommonPayload(UserGenericPayload.Initialize(string.Empty, $"Could not resend {input.CodeType.GetDescription()} code.", HttpStatusCode.BadRequest));
+                return new AccountResult(string.Empty, $"Could not resend {input.CodeType.GetDescription()} code.");
             }
-            return new UserCommonPayload(UserGenericPayload.Initialize(user.Email!, $"{input.CodeType.GetDescription()} successfully sent. Please check your email", HttpStatusCode.OK, true));
+            return new AccountResult(user.Email!, $"{input.CodeType.GetDescription()} successfully sent. Please check your email", true);
         }
 
         /// <summary>
@@ -207,7 +207,7 @@ namespace ProfessionalProfiles.Graph
         /// <param name="origin"></param>
         /// <param name="service"></param>
         /// <returns></returns>
-        public async Task<UserCommonPayload> ResetPasswordAsync(ResetPassInput input,
+        public async Task<AccountResult> ResetPasswordAsync(ResetPassInput input,
             [Service] UserManager<Professional> userManager, [GlobalState] string? origin,
             [Service] IServiceManager service)
         {
@@ -215,16 +215,16 @@ namespace ProfessionalProfiles.Graph
 
             if (user == null || !user.EmailConfirmed)
             {
-                return new UserCommonPayload(UserGenericPayload.Initialize(string.Empty, $"Could not find a user with the email: {input.Email}, or account not confirmed yet.", HttpStatusCode.NotFound));
+                return new AccountResult(string.Empty, $"Could not find a user with the email: {input.Email}, or account not confirmed yet.");
             }
 
             var mailSent = await service.Email.SendAccountRecoveryEmail(user, origin!);
 
             if (!mailSent)
             {
-                return new UserCommonPayload(UserGenericPayload.Initialize(string.Empty, $"Could not send password code.", HttpStatusCode.BadRequest));
+                return new AccountResult(string.Empty, $"Could not send password code.");
             }
-            return new UserCommonPayload(UserGenericPayload.Initialize(user.Email!, $"Password reset code successfully sent. Please check your email", HttpStatusCode.OK, true));
+            return new AccountResult(user.Email!, $"Password reset code successfully sent. Please check your email", true);
         }
 
         /// <summary>
@@ -234,13 +234,13 @@ namespace ProfessionalProfiles.Graph
         /// <param name="userManager"></param>
         /// <param name="repository"></param>
         /// <returns></returns>
-        public async Task<UserCommonPayload> ChangeForgottenPasswordAsync(ForgotPasswordInput input,
+        public async Task<AccountResult> ChangeForgottenPasswordAsync(ForgotPasswordInput input,
             [Service] UserManager<Professional> userManager, [Service] IRepositoryManager repository)
         {
             var user = await userManager.FindByEmailAsync(input.Email);
             if (user == null)
             {
-                return new UserCommonPayload(UserGenericPayload.Initialize(string.Empty, $"Could not find the user with email: {input.Email}.", HttpStatusCode.NotFound));
+                return new AccountResult(string.Empty, $"Could not find the user with email: {input.Email}.");
             }
 
             var code = await repository.OneTimePass
@@ -251,16 +251,16 @@ namespace ProfessionalProfiles.Graph
 
             if (code == null)
             {
-                return new UserCommonPayload(UserGenericPayload.Initialize(string.Empty, $"Invalid or expired password reset code. Please generate a new one to continue.", HttpStatusCode.BadRequest));
+                return new AccountResult(string.Empty, $"Invalid or expired password reset code. Please generate a new one to continue.");
             }
 
             var result = await userManager.ResetPasswordAsync(user, Uri.UnescapeDataString(code.Token), input.NewPassword);
             if (!result.Succeeded)
             {
-                return new UserCommonPayload(UserGenericPayload.Initialize(string.Empty, $"{result.Errors.FirstOrDefault()?.Description}", HttpStatusCode.BadRequest));
+                return new AccountResult(string.Empty, $"{result.Errors.FirstOrDefault()?.Description}");
             }
 
-            return new UserCommonPayload(UserGenericPayload.Initialize(user.Email!, $"Password reset successfully. Please proceed to login.", HttpStatusCode.OK, true));
+            return new AccountResult(user.Email!, $"Password reset successfully. Please proceed to login.", true);
         }
 
         /// <summary>
@@ -271,27 +271,33 @@ namespace ProfessionalProfiles.Graph
         /// <param name="repository"></param>
         /// <returns></returns>
         [Authorize]
-        public async Task<UserCommonPayload> ChangePassword(ChangePasswordInput input,
+        public async Task<AccountResult> ChangePassword(ChangePasswordInput input,
             [Service] UserManager<Professional> userManager, [Service] IRepositoryManager repository)
         {
             if (input.CurrentPassword.IsNullOrEmpty() || input.NewPassword.IsNullOrEmpty())
             {
-                return new UserCommonPayload(UserGenericPayload.Initialize(string.Empty, $"Invalid request", HttpStatusCode.BadRequest));
+                return new AccountResult(string.Empty, $"Invalid request");
             }
+
+            if (!input.NewPassword.Equals(input.ConfirmNewPassword))
+            {
+                return new AccountResult(string.Empty, $"New Password and Comfirm New Password fields must match. Please try again");
+            }
+
             var loggedInUserId = repository.User.GetLoggedInUserId();
             var user = await userManager.FindByIdAsync(loggedInUserId);
             if (user == null)
             {
-                return new UserCommonPayload(UserGenericPayload.Initialize(string.Empty, $"Access denied", HttpStatusCode.Unauthorized));
+                return new AccountResult(string.Empty, $"Access denied");
             }
 
             var result = await userManager.ChangePasswordAsync(user, input.CurrentPassword, input.NewPassword);
             if (!result.Succeeded)
             {
-                return new UserCommonPayload(UserGenericPayload.Initialize(string.Empty, $"{result.Errors.FirstOrDefault()?.Description}", HttpStatusCode.BadRequest));
+                return new AccountResult(string.Empty, $"{result.Errors.FirstOrDefault()?.Description}");
             }
 
-            return new UserCommonPayload(UserGenericPayload.Initialize(user.Email!, $"Password changed successfully.", HttpStatusCode.OK, true));
+            return new AccountResult(user.Email!, $"Password changed successfully.", true);
         }
         #endregion
 
@@ -304,21 +310,21 @@ namespace ProfessionalProfiles.Graph
         /// <param name="userManager"></param>
         /// <returns></returns>
         [Authorize]
-        public async Task<UserCommonPayload> AddUserLocationAsync(UserLocationInput input,
+        public async Task<AccountResult> AddUserLocationAsync(UserLocationInput input,
             [Service] UserManager<Professional> userManager, IRepositoryManager repository)
         {
             var validator = new UserLocationInputValidator().Validate(input);
             if (!validator.IsValid)
             {
                 var message = validator.Errors.FirstOrDefault()?.ErrorMessage ?? "Invalid input! Please try again.";
-                return new UserCommonPayload(UserGenericPayload.Initialize(string.Empty, message, HttpStatusCode.BadRequest));
+                return new AccountResult(string.Empty, message);
             }
 
             var userId = repository.User.GetLoggedInUserId();
             var userValidationResult = await ValidateLoggedinUser(userId, userManager);
             if (!userValidationResult.IsSuccessful || userValidationResult.User == null)
             {
-                return new UserCommonPayload(UserGenericPayload.Initialize("", userValidationResult.Message, userValidationResult.StatusCode));
+                return new AccountResult("", userValidationResult.Message);
             }
 
             var location = new ProfessionalLocation
@@ -335,7 +341,7 @@ namespace ProfessionalProfiles.Graph
 
             userValidationResult.User.Location = location;
             await userManager.UpdateAsync(userValidationResult.User);
-            return new UserCommonPayload(UserGenericPayload.Initialize(userValidationResult.User.Email!, "Location successfully added", HttpStatusCode.OK, true));
+            return new AccountResult(userValidationResult.User.Email!, "Location successfully added", true);
         }
 
         /// <summary>
@@ -426,31 +432,31 @@ namespace ProfessionalProfiles.Graph
         /// <param name="userManager"></param>
         /// <returns></returns>
         [Authorize]
-        public async Task<UserCommonPayload> AddEducationAsync(EducationInput input,
+        public async Task<EducationResult> AddEducationAsync(EducationInput input,
             IRepositoryManager repository, [Service] UserManager<Professional> userManager)
         {
             var validator = new AddEducationInputValidator().Validate(input);
             if (!validator.IsValid)
             {
                 var message = validator.Errors.FirstOrDefault()?.ErrorMessage ?? "Invalid input";
-                return new UserCommonPayload(UserGenericPayload.Initialize(string.Empty, message, HttpStatusCode.BadRequest));
+                return new EducationResult(null, message);
             }
 
             var loggedInUserId = repository.User.GetLoggedInUserId();
             if (loggedInUserId.IsNullOrEmpty())
             {
-                return new UserCommonPayload(UserGenericPayload.Initialize(string.Empty, "", HttpStatusCode.Unauthorized));
+                return new EducationResult(null, "Access denied");
             }
 
             var user = await userManager.FindByIdAsync(loggedInUserId);
             if (user == null)
             {
-                return new UserCommonPayload(UserGenericPayload.Initialize(string.Empty, "User not found", HttpStatusCode.NotFound));
+                return new EducationResult(null, "User not found");
             }
 
             var education = EducationDto.CreateMap(loggedInUserId, input);
             await repository.Education.AddAsync(education);
-            return new UserCommonPayload(UserGenericPayload.Initialize(user!.Email, "Education record added successfully", HttpStatusCode.OK, true));
+            return new EducationResult(education, "Education record added successfully", true);
         }
 
         /// <summary>
@@ -461,25 +467,25 @@ namespace ProfessionalProfiles.Graph
         /// <param name="userManager"></param>
         /// <returns></returns>
         [Authorize]
-        public async Task<UserCommonPayload> UpdateEducationAsync(Guid id, EducationInput input,
+        public async Task<EducationResult> UpdateEducationAsync(Guid id, EducationInput input,
             IRepositoryManager repository, [Service] UserManager<Professional> userManager)
         {
             var validator = new AddEducationInputValidator().Validate(input);
             if (!validator.IsValid)
             {
                 var message = validator.Errors.FirstOrDefault()?.ErrorMessage ?? "Invalid input";
-                return new UserCommonPayload(UserGenericPayload.Initialize(string.Empty, message, HttpStatusCode.BadRequest));
+                return new EducationResult(null, message);
             }
 
-            var existingRecord = await repository.Education.FindOneAsync(e => e.Id.Equals(id));
+            var existingRecord = await repository.Education.FindOneAsync(e => e.Id.Equals(id) && !e.IsDeprecated);
             if (existingRecord == null)
             {
-                return new UserCommonPayload(UserGenericPayload.Initialize(string.Empty, "Record not found", HttpStatusCode.NotFound));
+                return new EducationResult(null, "Record not found");
             }
 
             existingRecord = EducationDto.CreateMap(existingRecord, input);
             await repository.Education.EditAsync(e => e.Id.Equals(existingRecord.Id), existingRecord);
-            return new UserCommonPayload(UserGenericPayload.Initialize(string.Empty, "Education record updated successfully", HttpStatusCode.OK, true));
+            return new EducationResult(existingRecord, "Education record updated successfully", true);
         }
 
         /// <summary>
@@ -489,18 +495,18 @@ namespace ProfessionalProfiles.Graph
         /// <param name="repository"></param>
         /// <returns></returns>
         [Authorize]
-        public async Task<UserCommonPayload> DeleteEducationAsync(Guid id, [Service] IRepositoryManager repository)
+        public async Task<EducationResult> DeleteEducationAsync(Guid id, [Service] IRepositoryManager repository)
         {
             var existingRecord = await repository.Education.FindOneAsync(e => !e.IsDeprecated && e.Id.Equals(id));
             if (existingRecord == null)
             {
-                return new UserCommonPayload(UserGenericPayload.Initialize(string.Empty, "Record not found", HttpStatusCode.NotFound));
+                return new EducationResult(null, "Record not found");
             }
 
             existingRecord.IsDeprecated = true;
             existingRecord.UpdatedOn = DateTime.UtcNow;
             await repository.Education.EditAsync(e => e.Id.Equals(existingRecord.Id), existingRecord);
-            return new UserCommonPayload(UserGenericPayload.Initialize(string.Empty, "Education record deleted successfully", HttpStatusCode.OK, true));
+            return new EducationResult(null, "Education record deleted successfully", true);
         }
         #endregion
 
