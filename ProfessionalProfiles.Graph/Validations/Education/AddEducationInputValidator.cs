@@ -21,7 +21,7 @@ namespace ProfessionalProfiles.Graph.Validations.Education
             RuleFor(x => x.StartDate)
                 .Must(ValidationExtensions.BeAValidDate).WithMessage("Start Date is required");
             RuleFor(x => x.EndDate)
-                .Must(ValidationExtensions.BeAValidEndDate).WithMessage("Invalid End Date");
+                .Must(ValidationExtensions.BeAValidDate).WithMessage("Invalid End Date");
             RuleFor(x => x).Must(args => ValidationExtensions.BeAValidDateRange(args.StartDate, args.EndDate))
                 .WithMessage("End Date must be later than the Start Date.");
         }

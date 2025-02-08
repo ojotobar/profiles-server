@@ -14,4 +14,10 @@
 	  <ProjectReference Include="..\ProfessionalProfiles.Entities\ProfessionalProfiles.Entities.csproj" />
 	  <ProjectReference Include="..\ProfessionalProfiles.Services\ProfessionalProfiles.Services.csproj" />
 	</ItemGroup>
+	<ItemGroup>
+	  <Folder Include="Experiences\" />
+	  <Folder Include="Skills\" />
+	  <Folder Include="Projects\" />
+	  <Folder Include="UserSkills\" />
+	</ItemGroup>
 </Project>

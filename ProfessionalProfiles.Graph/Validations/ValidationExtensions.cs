@@ -7,7 +7,7 @@
             return !endDate.HasValue || (endDate.HasValue && startDate.Date < endDate.Value.Date);
         }
 
-        internal static bool BeAValidEndDate(DateTime? date)
+        internal static bool BeAValidDate(DateTime? date)
         {
             return !date.HasValue || (date.HasValue && !date.Equals(default));
         }
@@ -15,6 +15,11 @@
         internal static bool BeAValidDate(DateTime date)
         {
             return !date.Equals(default);
+        }
+
+        internal static bool BeAValidNumber(int? number)
+        {
+            return !number.HasValue || (number.HasValue && !number.Equals(default));
         }
     }
 }

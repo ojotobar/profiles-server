@@ -1,17 +1,22 @@
-﻿using CSharpTypes.Extensions.List;
+﻿using CSharpTypes.Extensions.Guid;
+using CSharpTypes.Extensions.List;
 using CSharpTypes.Extensions.Object;
 using CSharpTypes.Extensions.String;
+using FluentValidation;
+using FluentValidation.Results;
 using HotChocolate.Authorization;
 using Microsoft.AspNetCore.Identity;
 using ProfessionalProfiles.Data.Interface;
 using ProfessionalProfiles.Entities.Enums;
 using ProfessionalProfiles.Entities.Models;
 using ProfessionalProfiles.Graph.Account;
+using ProfessionalProfiles.Graph.Certfications;
 using ProfessionalProfiles.Graph.Dto;
 using ProfessionalProfiles.Graph.Educations;
 using ProfessionalProfiles.Graph.General;
 using ProfessionalProfiles.Graph.Profile;
 using ProfessionalProfiles.Graph.Validations.Account;
+using ProfessionalProfiles.Graph.Validations.Certification;
 using ProfessionalProfiles.Graph.Validations.Education;
 using ProfessionalProfiles.Services.Interfaces;
 using System.Net;
@@ -508,6 +513,120 @@ namespace ProfessionalProfiles.Graph
             await repository.Education.EditAsync(e => e.Id.Equals(existingRecord.Id), existingRecord);
             return new EducationResult(null, "Education record deleted successfully", true);
         }
+        #endregion
+
+        #region Certification Section
+        /// <summary>
+        /// Add User Certification
+        /// </summary>
+        /// <param name="inputs"></param>
+        /// <param name="repository"></param>
+        /// <returns></returns>
+        [Authorize]
+        public async Task<CertificationsPayload> AddCertificationsAsync(List<CertificationInput> inputs,
+            IRepositoryManager repository)
+        {
+            foreach (var input in inputs)
+            {
+                var validationResult = new CertificationInputValidator().Validate(input);
+                if (!validationResult.IsValid)
+                {
+                    var message = validationResult.Errors.FirstOrDefault()?.ErrorMessage ?? "Invalid input";
+                    return new CertificationsPayload([], message);
+                }
+            }
+
+            var userId = repository.User.GetLoggedInUserId().ToGuid();
+            if (userId.IsEmpty())
+            {
+                return new CertificationsPayload([], "Permission denied!!!");
+            }
+
+            var certifications = inputs.Initialize(userId);
+            await repository.Certification.AddRangeAsync(certifications);
+            return new CertificationsPayload(certifications, "Certification added successfully", true);
+        }
+
+        /// <summary>
+        /// Updated certification
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="input"></param>
+        /// <param name="repository"></param>
+        /// <returns></returns>
+        [Authorize]
+        public async Task<CertificationPayload> UpdateCertificationAsync(Guid id, CertificationInput input,
+            IRepositoryManager repository)
+        {
+            var validationResult = new CertificationInputValidator().Validate(input);
+            if (!validationResult.IsValid)
+            {
+                var message = validationResult.Errors.FirstOrDefault()?.ErrorMessage ?? "Invalid input";
+                return new CertificationPayload(null, message);
+            }
+
+            var userId = repository.User.GetLoggedInUserId().ToGuid();
+            if (userId.IsEmpty())
+            {
+                return new CertificationPayload(null, "Permission denied!!!");
+            }
+
+            var certification = await repository.Certification.FindAsync(c => c.Id.Equals(id));
+            if (certification.IsNull())
+            {
+                return new CertificationPayload(null, "Record not found");
+            }
+
+            var loggedInUserRole = await repository.User.GetUserRoles();
+            if (!loggedInUserRole.IsNotNullOrEmpty() || (!loggedInUserRole.Contains(ERoles.Admin) && !userId.Equals(certification!.UserId)))
+            {
+                return new CertificationPayload(null, "You're not authorized to perform this action!");
+            }
+
+            certification = input.Map(certification!);
+            await repository.Certification.EditAsync(c => c.Id.Equals(id), certification);
+            return new CertificationPayload(certification, "Certification updated successfully", true);
+        }
+
+        [Authorize]
+        public async Task<CertificationPayload> DeleteCertificationAsync(Guid id, IRepositoryManager repository)
+        {
+            var userId = repository.User.GetLoggedInUserId().ToGuid();
+            if (userId.IsEmpty())
+            {
+                return new CertificationPayload(null, "Permission denied!!!");
+            }
+
+            var certification = await repository.Certification.FindAsync(c => c.Id.Equals(id));
+            if (certification.IsNull())
+            {
+                return new CertificationPayload(null, "Record not found");
+            }
+
+            var loggedInUserRole = await repository.User.GetUserRoles();
+            if (!loggedInUserRole.IsNotNullOrEmpty() || (!loggedInUserRole.Contains(ERoles.Admin) && !userId.Equals(certification!.UserId)))
+            {
+                return new CertificationPayload(null, "You're not authorized to perform this action!");
+            }
+
+            await repository.Certification.DeleteAsync(c => c.Id.Equals(id));
+            return new CertificationPayload(null, "Certification deleted successfully", true);
+        }
+        #endregion
+
+        #region User Skill Section
+        #endregion
+
+        #region Career Summary Section
+        #endregion
+
+        #region Project Section
+        #endregion
+
+        #region Skill Section
+        #endregion
+
+        #region Experience Section
         #endregion
 
         #region Validations

@@ -1,10 +1,8 @@
 ﻿using CSharpTypes.Extensions.Enumeration;
 using CSharpTypes.Extensions.Guid;
 using CSharpTypes.Extensions.String;
-using Mailjet.Client.Resources;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
-using Mongo.Common.MongoDB;
 using ProfessionalProfiles.Data.Interface;
 using ProfessionalProfiles.Entities.Enums;
 using ProfessionalProfiles.Entities.Models;
@@ -13,17 +11,11 @@ using System.Security.Claims;
 
 namespace ProfessionalProfiles.Data.Implementations
 {
-    public class UserRepository : IUserRepository
+    public class UserRepository(IHttpContextAccessor contextAccessor,
+        UserManager<Professional> userManager) : IUserRepository
     {
-        private readonly IHttpContextAccessor contextAccessor;
-        private readonly UserManager<Professional> userManager;
-
-        public UserRepository(IHttpContextAccessor contextAccessor,
-            UserManager<Professional> userManager)
-        {
-            this.contextAccessor = contextAccessor;
-            this.userManager = userManager;
-        }
+        private readonly IHttpContextAccessor contextAccessor = contextAccessor;
+        private readonly UserManager<Professional> userManager = userManager;
 
         /// <summary>
         /// Gets logged in userId

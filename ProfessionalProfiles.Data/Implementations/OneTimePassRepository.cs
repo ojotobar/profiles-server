@@ -6,10 +6,9 @@ using System.Linq.Expressions;
 
 namespace ProfessionalProfiles.Data.Implementations
 {
-    public class OneTimePassRepository : Repository<OneTimePass>, IOneTimePassRepository
+    public class OneTimePassRepository(MongoDbSettings settings) 
+        : Repository<OneTimePass>(settings), IOneTimePassRepository
     {
-        public OneTimePassRepository(MongoDbSettings settings) : base(settings) { }
-        
         public async Task AddAsync(OneTimePass oneTimePass) 
             => await CreateAsync(oneTimePass);
 

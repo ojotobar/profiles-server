@@ -6,15 +6,13 @@ using System.Linq.Expressions;
 
 namespace ProfessionalProfiles.Data.Implementations
 {
-    public class EducationRepository : Repository<Education>, IEducationRepository
+    public class EducationRepository(MongoDbSettings settings) 
+        : Repository<Education>(settings), IEducationRepository
     {
-        public EducationRepository(MongoDbSettings settings) 
-            : base(settings) {}
-
         public async Task AddAsync(Education education) =>
             await CreateAsync(education);
 
-        public async Task AddManyAsync(List<Education> educations) =>
+        public async Task AddRangeAsync(List<Education> educations) =>
             await CreateManyAsync(educations);
 
         public async Task EditAsync(Expression<Func<Education, bool>> expression, Education entity) =>

@@ -8,4 +8,6 @@
     <ItemGroup>
 	    <PackageReference Include="CSharpTypes.Extensions" Version="1.0.0" />
     </ItemGroup>
+    <ItemGroup>
+    </ItemGroup>
 </Project>

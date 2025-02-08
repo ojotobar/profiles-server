@@ -1,10 +1,12 @@
 ﻿using CSharpTypes.Extensions.Guid;
 using CSharpTypes.Extensions.String;
 using HotChocolate.Authorization;
+using Mailjet.Client.Resources;
 using Microsoft.AspNetCore.Identity;
 using ProfessionalProfiles.Data.Interface;
 using ProfessionalProfiles.Entities.Models;
 using ProfessionalProfiles.Graph.Account;
+using ProfessionalProfiles.Graph.Certfications;
 using ProfessionalProfiles.Graph.Dto;
 using ProfessionalProfiles.GraphQL.Profile;
 using ProfessionalProfiles.Shared.Extensions;
@@ -116,6 +118,50 @@ namespace ProfessionalProfiles.Graph
             }
 
             return record;
+        }
+        #endregion
+
+        #region Certification Section
+        /// <summary>
+        /// Get certification by id
+        /// </summary>
+        /// <param name="repository"></param>
+        /// <param name="apiKey"></param>
+        /// <returns></returns>
+        public async Task<CertificationPayload> GetCertificationAsync(Guid id, [Service] IRepositoryManager repository,
+            [GlobalState] string? apiKey)
+        {
+            var userId = repository.User.GetLoggedInOrApiKeyUserId(apiKey!);
+            if (userId.IsEmpty())
+            {
+                return new CertificationPayload(null, "Access denied!!!");
+            }
+
+            var certification = await repository.Certification
+                .FindAsync(c => !c.IsDeprecated && c.Id.Equals(id));
+
+            return new CertificationPayload(certification, "Record retrieved successfully", true);
+        }
+
+        /// <summary>
+        /// Gets a list of user's certification
+        /// </summary>
+        /// <param name="repository"></param>
+        /// <param name="apiKey"></param>
+        /// <returns></returns>
+        public async Task<CertificationsPayload> GetCertificationsAsync([Service] IRepositoryManager repository,
+            [GlobalState] string? apiKey)
+        {
+            var userId = repository.User.GetLoggedInOrApiKeyUserId(apiKey!);
+            if (userId.IsEmpty())
+            {
+                return new CertificationsPayload([], "Access denied!!!");
+            }
+
+            var certifications = await repository.Certification
+                .FindRangeAsync(c => !c.IsDeprecated && c.UserId.Equals(userId));
+
+            return new CertificationsPayload(certifications, "Records retrieved successfully", true);
         }
         #endregion
     }
