@@ -2,5 +2,5 @@
 
 namespace ProfessionalProfiles.GraphQL.Profile
 {
-    public record ProfilePayload(ProfessionalDto Data);
+    public record ProfilePayload(ProfessionalDto? Profile, string Message, bool Successful = false);
 }

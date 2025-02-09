@@ -2,8 +2,6 @@
 using CSharpTypes.Extensions.List;
 using CSharpTypes.Extensions.Object;
 using CSharpTypes.Extensions.String;
-using FluentValidation;
-using FluentValidation.Results;
 using HotChocolate.Authorization;
 using Microsoft.AspNetCore.Identity;
 using ProfessionalProfiles.Data.Interface;
@@ -18,6 +16,7 @@ using ProfessionalProfiles.Graph.Experiences;
 using ProfessionalProfiles.Graph.General;
 using ProfessionalProfiles.Graph.Profile;
 using ProfessionalProfiles.Graph.Projects;
+using ProfessionalProfiles.Graph.UserSkills;
 using ProfessionalProfiles.Graph.Validations;
 using ProfessionalProfiles.Services.Interfaces;
 using System.Net;
@@ -929,10 +928,51 @@ namespace ProfessionalProfiles.Graph
         }
         #endregion
 
-        #region Skill Section
-        #endregion
-
         #region User Skill Section
+        /// <summary>
+        /// Add or update user skills
+        /// </summary>
+        /// <param name="inputs"></param>
+        /// <param name="userManager"></param>
+        /// <param name="apiKey"></param>
+        /// <param name="repository"></param>
+        /// <returns></returns>
+        [Authorize]
+        public async Task<ProfessionalSkillsPayload> AddOrUpdateSkillsAsync(List<string> inputs, [Service]UserManager<Professional> userManager, 
+            [GlobalState] string? apiKey, IRepositoryManager repository)
+        {
+            var userId = repository.User.GetLoggedInOrApiKeyUserId(apiKey!);
+            if (userId.IsEmpty())
+            {
+                return new ProfessionalSkillsPayload([], "Access denied!!!");
+            }
+
+            if (!inputs.IsNotNullOrEmpty())
+            {
+                return new ProfessionalSkillsPayload([], "You must enter one or more skills");
+            }
+
+            var validator = new ProfessionalSkillValidator();
+            foreach (var item in inputs)
+            {
+                var result = validator.Validate(item);
+                if (!result.IsValid)
+                {
+                    var message = result.Errors.FirstOrDefault()?.ErrorMessage ?? "Invalid input";
+                    return new ProfessionalSkillsPayload([], message);
+                }
+            }
+
+            var user = await userManager.FindByIdAsync(userId.ToString());
+            if (user.IsNull())
+            {
+                return new ProfessionalSkillsPayload([], "No user record found");
+            }
+
+            user!.Skills = inputs.Map();
+            await userManager.UpdateAsync(user);
+            return new ProfessionalSkillsPayload(user!.Skills, "Skills update successful", true);
+        }
         #endregion
 
         #region Validations

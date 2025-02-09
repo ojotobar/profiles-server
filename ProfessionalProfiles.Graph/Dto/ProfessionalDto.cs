@@ -1,6 +1,5 @@
 ﻿using ProfessionalProfiles.Entities.Enums;
 using ProfessionalProfiles.Entities.Models;
-using System.Net;
 
 namespace ProfessionalProfiles.Graph.Dto
 {
@@ -19,15 +18,13 @@ namespace ProfessionalProfiles.Graph.Dto
         public ProfessionalLocation? Location { get; set; }
         public string Email { get; set; } = string.Empty;
         public string? PhoneNumber { get; set; }
+        public List<string> Skills { get; set; } = [];
+        public string? PhotoUrl { get; set; }
+        public string? CVUrl { get; set; }
 
-        // Default props
-        public bool IsSuccessful { get; set; }
-        public HttpStatusCode StatusCode { get; set; } = HttpStatusCode.BadRequest;
-        public string? Message { get; set; }
-
-        public static ProfessionalDto MapData(Professional? user, HttpStatusCode code, string? message = "", bool successful = false)
+        public static ProfessionalDto? MapData(Professional? user)
         {
-            return user == null ? new ProfessionalDto() : new ProfessionalDto
+            return user == null ? null : new ProfessionalDto
             {
                 Id = user.Id,
                 FirstName = user.FirstName!,
@@ -42,9 +39,9 @@ namespace ProfessionalProfiles.Graph.Dto
                 LastLogin = user.LastLogin,
                 UpdatedOn = user.UpdatedOn,
                 Location = user.Location,
-                IsSuccessful = successful,
-                StatusCode = code,
-                Message = message
+                Skills = user.Skills,
+                CVUrl = user.ResumeLink,
+                PhotoUrl = user.ProfilePicture
             };
         }
     }

@@ -3,6 +3,7 @@ using ProfessionalProfiles.Graph.CareerSummaries;
 using ProfessionalProfiles.Graph.Certfications;
 using ProfessionalProfiles.Graph.Experiences;
 using ProfessionalProfiles.Graph.Projects;
+using ProfessionalProfiles.Shared.Extensions;
 
 namespace ProfessionalProfiles.Graph.Dto
 {
@@ -105,6 +106,16 @@ namespace ProfessionalProfiles.Graph.Dto
                     : null
             }));
             return results;
+        }
+
+        public static List<string> Map(this List<string> inputs)
+        {
+            var outputs = new List<string>();
+            foreach (var input in inputs)
+            {
+                outputs.Add(input.CapitalizeText());
+            }
+            return outputs;
         }
     }
 }

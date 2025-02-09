@@ -1,10 +1,16 @@
 ﻿using CSharpTypes.Extensions.Guid;
+using System.Globalization;
 using System.Text;
 
 namespace ProfessionalProfiles.Shared.Extensions
 {
     public static class StringTypeExtensions
     {
+        public static string CapitalizeText(this string title)
+        {
+            return new CultureInfo("en-US", false).TextInfo.ToTitleCase(title);
+        }
+
         public static string EncodeGuidAsBase64(this Guid guid, long ticks)
         {
             var text = $"{guid.ToString().ReplaceDash(ticks.ToString())}n4{ticks}";

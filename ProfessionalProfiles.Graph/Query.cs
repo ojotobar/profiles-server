@@ -1,7 +1,6 @@
 ﻿using CSharpTypes.Extensions.Guid;
 using CSharpTypes.Extensions.String;
 using HotChocolate.Authorization;
-using Mailjet.Client.Resources;
 using Microsoft.AspNetCore.Identity;
 using ProfessionalProfiles.Data.Interface;
 using ProfessionalProfiles.Entities.Models;
@@ -63,16 +62,16 @@ namespace ProfessionalProfiles.Graph
 
             if (userId.IsEmpty())
             {
-                return new ProfilePayload(ProfessionalDto.MapData(null, HttpStatusCode.Unauthorized, "Access denied!"));
+                return new ProfilePayload(ProfessionalDto.MapData(null), "Access denied");
             }
 
             var user = await userManager.FindByIdAsync(userId.ToString());
             if (user == null)
             {
-                return new ProfilePayload(ProfessionalDto.MapData(user, HttpStatusCode.NotFound, "User not found!"));
+                return new ProfilePayload(ProfessionalDto.MapData(user), "User not found!");
             }
 
-            return new ProfilePayload(ProfessionalDto.MapData(user, HttpStatusCode.OK, successful: true));
+            return new ProfilePayload(ProfessionalDto.MapData(user), "Profile retrieved successfully", true);
         }
         #endregion
 
