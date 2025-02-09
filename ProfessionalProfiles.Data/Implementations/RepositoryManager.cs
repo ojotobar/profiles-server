@@ -36,5 +36,6 @@ namespace ProfessionalProfiles.Data.Implementations
         public ISkillRepository Skill => skillRepository.Value;
         public IWorkExperienceRepository WorkExperience => workExperienceRepository.Value;
         public IProjectRepository Project => projectRepository.Value;
+        public IProfessionalSummaryRepository Summary => professionalSummaryRepository.Value;
     }
 }

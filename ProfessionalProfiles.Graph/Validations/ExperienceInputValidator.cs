@@ -1,17 +1,16 @@
 ﻿using FluentValidation;
-using ProfessionalProfiles.Graph.Educations;
-namespace ProfessionalProfiles.Graph.Validations.Education
+using ProfessionalProfiles.Graph.Experiences;
+
+namespace ProfessionalProfiles.Graph.Validations
 {
-    public class AddEducationInputValidator : AbstractValidator<EducationInput>
+    public class ExperienceInputValidator : AbstractValidator<ExperienceInput>
     {
-        public AddEducationInputValidator()
+        public ExperienceInputValidator()
         {
-            RuleFor(x => x.SchoolName)
-                .NotEmpty().WithMessage("Institution name is required");
-            RuleFor(x => x.Level)
-                .IsInEnum().WithMessage("Invalid gender");
-            RuleFor(x => x.Course)
-                .NotEmpty().WithMessage("Course is required.");
+            RuleFor(x => x.Organization)
+                .NotEmpty().WithMessage("Organization name is required");
+            RuleFor(x => x.Title)
+                .NotEmpty().WithMessage("Job Title is required");
             RuleFor(x => x.Location)
                 .NotNull().WithMessage("Location is required");
             RuleFor(x => x.Location.City)
@@ -24,6 +23,8 @@ namespace ProfessionalProfiles.Graph.Validations.Education
                 .Must(ValidationExtensions.BeAValidDate).WithMessage("Invalid End Date");
             RuleFor(x => x).Must(args => ValidationExtensions.BeAValidDateRange(args.StartDate, args.EndDate))
                 .WithMessage("End Date must be later than the Start Date.");
+            RuleFor(x => x.Summaries)
+                .Must(ValidationExtensions.BeAValidListOfString).WithMessage("All job description entries must be one or more characters long.");
         }
     }
 }

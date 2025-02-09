@@ -10,14 +10,15 @@ using ProfessionalProfiles.Data.Interface;
 using ProfessionalProfiles.Entities.Enums;
 using ProfessionalProfiles.Entities.Models;
 using ProfessionalProfiles.Graph.Account;
+using ProfessionalProfiles.Graph.CareerSummaries;
 using ProfessionalProfiles.Graph.Certfications;
 using ProfessionalProfiles.Graph.Dto;
 using ProfessionalProfiles.Graph.Educations;
+using ProfessionalProfiles.Graph.Experiences;
 using ProfessionalProfiles.Graph.General;
 using ProfessionalProfiles.Graph.Profile;
-using ProfessionalProfiles.Graph.Validations.Account;
-using ProfessionalProfiles.Graph.Validations.Certification;
-using ProfessionalProfiles.Graph.Validations.Education;
+using ProfessionalProfiles.Graph.Projects;
+using ProfessionalProfiles.Graph.Validations;
 using ProfessionalProfiles.Services.Interfaces;
 using System.Net;
 
@@ -440,7 +441,7 @@ namespace ProfessionalProfiles.Graph
         public async Task<EducationResult> AddEducationAsync(EducationInput input,
             IRepositoryManager repository, [Service] UserManager<Professional> userManager)
         {
-            var validator = new AddEducationInputValidator().Validate(input);
+            var validator = new EducationInputValidator().Validate(input);
             if (!validator.IsValid)
             {
                 var message = validator.Errors.FirstOrDefault()?.ErrorMessage ?? "Invalid input";
@@ -475,7 +476,7 @@ namespace ProfessionalProfiles.Graph
         public async Task<EducationResult> UpdateEducationAsync(Guid id, EducationInput input,
             IRepositoryManager repository, [Service] UserManager<Professional> userManager)
         {
-            var validator = new AddEducationInputValidator().Validate(input);
+            var validator = new EducationInputValidator().Validate(input);
             if (!validator.IsValid)
             {
                 var message = validator.Errors.FirstOrDefault()?.ErrorMessage ?? "Invalid input";
@@ -588,6 +589,12 @@ namespace ProfessionalProfiles.Graph
             return new CertificationPayload(certification, "Certification updated successfully", true);
         }
 
+        /// <summary>
+        /// Deletes certification records
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="repository"></param>
+        /// <returns></returns>
         [Authorize]
         public async Task<CertificationPayload> DeleteCertificationAsync(Guid id, IRepositoryManager repository)
         {
@@ -614,19 +621,318 @@ namespace ProfessionalProfiles.Graph
         }
         #endregion
 
-        #region User Skill Section
-        #endregion
-
         #region Career Summary Section
+        /// <summary>
+        /// Add User Professional summary
+        /// </summary>
+        /// <param name="inputs"></param>
+        /// <param name="repository"></param>
+        /// <returns></returns>
+        [Authorize]
+        public async Task<ProfessionalSummaryPayload> AddProfessionalSummaryAsync(ProfessionalSummaryInput input,
+            IRepositoryManager repository)
+        {
+            if (input.Summary.IsNullOrEmpty())
+            {
+                return new ProfessionalSummaryPayload(null, "Professional summary field is required.");
+            }
+
+            var userId = repository.User.GetLoggedInUserId().ToGuid();
+            if (userId.IsEmpty())
+            {
+                return new ProfessionalSummaryPayload(null, "Permission denied!!!");
+            }
+
+            var summary = input.Initialize(userId);
+            await repository.Summary.AddAsync(summary);
+            return new ProfessionalSummaryPayload(summary, "Professional Summary added successfully", true);
+        }
+
+        /// <summary>
+        /// Updates professional summary records
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="input"></param>
+        /// <param name="repository"></param>
+        /// <returns></returns>
+        [Authorize]
+        public async Task<ProfessionalSummaryPayload> UpdateCareerSummaryAsync(Guid id, ProfessionalSummaryInput input,
+            IRepositoryManager repository)
+        {
+            if (input.Summary.IsNullOrEmpty())
+            {
+                return new ProfessionalSummaryPayload(null, "Professional summary field is required.");
+            }
+
+            var userId = repository.User.GetLoggedInUserId().ToGuid();
+            if (userId.IsEmpty())
+            {
+                return new ProfessionalSummaryPayload(null, "Permission denied!!!");
+            }
+
+            var summary = await repository.Summary.FindAsync(s => s.Id.Equals(id) && s.UserId.Equals(userId));
+            if (summary.IsNull())
+            {
+                return new ProfessionalSummaryPayload(null, "Record not found");
+            }
+
+            var loggedInUserRole = await repository.User.GetUserRoles();
+            if (!loggedInUserRole.IsNotNullOrEmpty() || (!loggedInUserRole.Contains(ERoles.Admin) && !userId.Equals(summary!.UserId)))
+            {
+                return new ProfessionalSummaryPayload(null, "You're not authorized to perform this action!");
+            }
+
+            summary = input.Map(summary!);
+            await repository.Summary.EditAsync(c => c.Id.Equals(id), summary);
+            return new ProfessionalSummaryPayload(summary, "Professional summary updated successfully", true);
+        }
+
+        /// <summary>
+        /// Deletes Professional Summary records
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="repository"></param>
+        /// <returns></returns>
+        [Authorize]
+        public async Task<ProfessionalSummaryPayload> DeleteCareerSummaryAsync(Guid id, IRepositoryManager repository)
+        {
+            var userId = repository.User.GetLoggedInUserId().ToGuid();
+            if (userId.IsEmpty())
+            {
+                return new ProfessionalSummaryPayload(null, "Permission denied!!!");
+            }
+
+            var summary = await repository.Summary.FindAsync(c => c.Id.Equals(id));
+            if (summary.IsNull())
+            {
+                return new ProfessionalSummaryPayload(null, "Record not found");
+            }
+
+            var loggedInUserRole = await repository.User.GetUserRoles();
+            if (!loggedInUserRole.IsNotNullOrEmpty() || (!loggedInUserRole.Contains(ERoles.Admin) && !userId.Equals(summary!.UserId)))
+            {
+                return new ProfessionalSummaryPayload(null, "You're not authorized to perform this action!");
+            }
+
+            await repository.Summary.DeleteAsync(c => c.Id.Equals(id));
+            return new ProfessionalSummaryPayload(null, "Professional Summary record deleted successfully", true);
+        }
         #endregion
 
         #region Project Section
+        /// <summary>
+        /// Add User Projects
+        /// </summary>
+        /// <param name="inputs"></param>
+        /// <param name="repository"></param>
+        /// <returns></returns>
+        [Authorize]
+        public async Task<ProjectsPayload> AddProjectsAsync(List<ProjectInput> inputs,
+            IRepositoryManager repository)
+        {
+            foreach (var input in inputs)
+            {
+                var validationResult = new ProjectInputValidator().Validate(input);
+                if (!validationResult.IsValid)
+                {
+                    var message = validationResult.Errors.FirstOrDefault()?.ErrorMessage ?? "Invalid input";
+                    return new ProjectsPayload([], message);
+                }
+            }
+
+            var userId = repository.User.GetLoggedInUserId().ToGuid();
+            if (userId.IsEmpty())
+            {
+                return new ProjectsPayload([], "Permission denied!!!");
+            }
+
+            var projects = inputs.Initialize(userId);
+            await repository.Project.AddRangeAsync(projects);
+            return new ProjectsPayload(projects, "Projects added successfully", true);
+        }
+
+        /// <summary>
+        /// Updated Projects
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="input"></param>
+        /// <param name="repository"></param>
+        /// <returns></returns>
+        [Authorize]
+        public async Task<ProjectPayload> UpdateProjectAsync(Guid id, ProjectInput input,
+            IRepositoryManager repository)
+        {
+            var validationResult = new ProjectInputValidator().Validate(input);
+            if (!validationResult.IsValid)
+            {
+                var message = validationResult.Errors.FirstOrDefault()?.ErrorMessage ?? "Invalid input";
+                return new ProjectPayload(null, message);
+            }
+
+            var userId = repository.User.GetLoggedInUserId().ToGuid();
+            if (userId.IsEmpty())
+            {
+                return new ProjectPayload(null, "Permission denied!!!");
+            }
+
+            var project = await repository.Project.FindAsync(p => p.UserId.Equals(userId) && p.Id.Equals(id));
+            if (project.IsNull())
+            {
+                return new ProjectPayload(null, "Record not found");
+            }
+
+            var loggedInUserRole = await repository.User.GetUserRoles();
+            if (!loggedInUserRole.IsNotNullOrEmpty() || (!loggedInUserRole.Contains(ERoles.Admin) && !userId.Equals(project!.UserId)))
+            {
+                return new ProjectPayload(null, "You're not authorized to perform this action!");
+            }
+
+            project = input.Map(project!);
+            await repository.Project.EditAsync(c => c.Id.Equals(id), project);
+            return new ProjectPayload(project, "Project updated successfully", true);
+        }
+
+        /// <summary>
+        /// Deletes certification records
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="repository"></param>
+        /// <returns></returns>
+        [Authorize]
+        public async Task<ProjectPayload> DeleteProjectAsync(Guid id, IRepositoryManager repository)
+        {
+            var userId = repository.User.GetLoggedInUserId().ToGuid();
+            if (userId.IsEmpty())
+            {
+                return new ProjectPayload(null, "Permission denied!!!");
+            }
+
+            var certification = await repository.Project.FindAsync(c => c.Id.Equals(id));
+            if (certification.IsNull())
+            {
+                return new ProjectPayload(null, "Record not found");
+            }
+
+            var loggedInUserRole = await repository.User.GetUserRoles();
+            if (!loggedInUserRole.IsNotNullOrEmpty() || (!loggedInUserRole.Contains(ERoles.Admin) && !userId.Equals(certification!.UserId)))
+            {
+                return new ProjectPayload(null, "You're not authorized to perform this action!");
+            }
+
+            await repository.Project.DeleteAsync(c => c.Id.Equals(id));
+            return new ProjectPayload(null, "Project deleted successfully", true);
+        }
+        #endregion
+
+        #region Experience Section
+        /// <summary>
+        /// Add User Work Experiences
+        /// </summary>
+        /// <param name="inputs"></param>
+        /// <param name="repository"></param>
+        /// <returns></returns>
+        [Authorize]
+        public async Task<ExperiencesPayload> AddExperiencesAsync(List<ExperienceInput> inputs,
+            IRepositoryManager repository)
+        {
+            foreach (var input in inputs)
+            {
+                var validationResult = new ExperienceInputValidator().Validate(input);
+                if (!validationResult.IsValid)
+                {
+                    var message = validationResult.Errors.FirstOrDefault()?.ErrorMessage ?? "Invalid input";
+                    return new ExperiencesPayload([], message);
+                }
+            }
+
+            var userId = repository.User.GetLoggedInUserId().ToGuid();
+            if (userId.IsEmpty())
+            {
+                return new ExperiencesPayload([], "Permission denied!!!");
+            }
+
+            var experiences = inputs.Initialize(userId);
+            await repository.WorkExperience.AddRangeAsync(experiences);
+            return new ExperiencesPayload(experiences, "Experiences added successfully", true);
+        }
+
+        /// <summary>
+        /// Update Work Experience
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="input"></param>
+        /// <param name="repository"></param>
+        /// <returns></returns>
+        [Authorize]
+        public async Task<ExperiencePayload> UpdateExperienceInputAsync(Guid id, ExperienceInput input,
+            IRepositoryManager repository)
+        {
+            var validationResult = new ExperienceInputValidator().Validate(input);
+            if (!validationResult.IsValid)
+            {
+                var message = validationResult.Errors.FirstOrDefault()?.ErrorMessage ?? "Invalid input";
+                return new ExperiencePayload(null, message);
+            }
+
+            var userId = repository.User.GetLoggedInUserId().ToGuid();
+            if (userId.IsEmpty())
+            {
+                return new ExperiencePayload(null, "Permission denied!!!");
+            }
+
+            var experience = await repository.WorkExperience.FindAsync(p => p.UserId.Equals(userId) && p.Id.Equals(id));
+            if (experience.IsNull())
+            {
+                return new ExperiencePayload(null, "Record not found");
+            }
+
+            var loggedInUserRole = await repository.User.GetUserRoles();
+            if (!loggedInUserRole.IsNotNullOrEmpty() || (!loggedInUserRole.Contains(ERoles.Admin) && !userId.Equals(experience!.UserId)))
+            {
+                return new ExperiencePayload(null, "You're not authorized to perform this action!");
+            }
+
+            experience = input.Map(experience!);
+            await repository.WorkExperience.EditAsync(c => c.Id.Equals(id), experience);
+            return new ExperiencePayload(experience, "Experience updated successfully", true);
+        }
+
+        /// <summary>
+        /// Deletes certification records
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="repository"></param>
+        /// <returns></returns>
+        [Authorize]
+        public async Task<ExperiencePayload> DeleteExperienceAsync(Guid id, IRepositoryManager repository)
+        {
+            var userId = repository.User.GetLoggedInUserId().ToGuid();
+            if (userId.IsEmpty())
+            {
+                return new ExperiencePayload(null, "Permission denied!!!");
+            }
+
+            var experience = await repository.Project.FindAsync(c => c.Id.Equals(id));
+            if (experience.IsNull())
+            {
+                return new ExperiencePayload(null, "Record not found");
+            }
+
+            var loggedInUserRole = await repository.User.GetUserRoles();
+            if (!loggedInUserRole.IsNotNullOrEmpty() || (!loggedInUserRole.Contains(ERoles.Admin) && !userId.Equals(experience!.UserId)))
+            {
+                return new ExperiencePayload(null, "You're not authorized to perform this action!");
+            }
+
+            await repository.Project.DeleteAsync(c => c.Id.Equals(id));
+            return new ExperiencePayload(null, "Experience deleted successfully", true);
+        }
         #endregion
 
         #region Skill Section
         #endregion
 
-        #region Experience Section
+        #region User Skill Section
         #endregion
 
         #region Validations

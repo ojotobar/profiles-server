@@ -1,7 +1,7 @@
 ﻿using FluentValidation;
 using ProfessionalProfiles.Graph.Certfications;
 
-namespace ProfessionalProfiles.Graph.Validations.Certification
+namespace ProfessionalProfiles.Graph.Validations
 {
     public class CertificationInputValidator : AbstractValidator<CertificationInput>
     {

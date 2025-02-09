@@ -10,5 +10,6 @@
         ISkillRepository Skill { get; }
         IWorkExperienceRepository WorkExperience { get; }
         IProjectRepository Project { get; }
+        IProfessionalSummaryRepository Summary { get; }
     }
 }

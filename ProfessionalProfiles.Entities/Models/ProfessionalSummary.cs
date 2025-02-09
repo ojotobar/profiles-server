@@ -6,6 +6,7 @@ namespace ProfessionalProfiles.Entities.Models
     public class ProfessionalSummary : IBaseEntity
     {
         public Guid Id { get; set; }
+        public Guid UserId { get; set; }
         public DateTime CreatedOn { get; set; } = DateTime.UtcNow;
         public DateTime UpdatedOn { get; set; } = DateTime.UtcNow;
         public bool IsDeprecated { get; set; }

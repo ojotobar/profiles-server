@@ -1,7 +1,7 @@
 ﻿using FluentValidation;
 using ProfessionalProfiles.Graph.Account;
 
-namespace ProfessionalProfiles.Graph.Validations.Account
+namespace ProfessionalProfiles.Graph.Validations
 {
     public class UserLocationInputValidator : AbstractValidator<UserLocationInput>
     {
