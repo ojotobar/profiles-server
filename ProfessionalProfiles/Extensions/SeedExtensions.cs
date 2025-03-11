@@ -2,6 +2,7 @@
 using CSharpTypes.Extensions.Object;
 using CSharpTypes.Extensions.String;
 using Microsoft.AspNetCore.Identity;
+using ProfessionalProfiles.Data.Interface;
 using ProfessionalProfiles.Entities.Enums;
 using ProfessionalProfiles.Entities.Models;
 
@@ -13,6 +14,7 @@ namespace ProfessionalProfiles.Extensions
         {
             using var scope = app.Services.CreateScope();
             await scope.DoSeedSystemRoles(logger);
+            await scope.DoSeedSystemFaqs(logger);
         }
 
         private static async Task DoSeedSystemRoles(this IServiceScope scope, ILogger<Program> logger)
@@ -52,6 +54,26 @@ namespace ProfessionalProfiles.Extensions
                 }
 
                 logger.LogInformation("Seeding skipped.... Roles already exist in the database.");
+            }
+        }
+
+        private static async Task DoSeedSystemFaqs(this IServiceScope scope, ILogger<Program> logger)
+        {
+            var repository = scope.ServiceProvider.GetRequiredService<IRepositoryManager>();
+            if (repository.IsNotNull())
+            {
+                var faqsExists = await repository.Faqs.HasAnyAsync(f => !f.IsDeprecated);
+                if (!faqsExists)
+                {
+                    var faqs = SeederExtensions.GetSystemFaqs();
+                    logger.LogInformation($"Starting FAQs seeding...");
+
+                    await repository.Faqs.AddRangeAsync(faqs);
+                    logger.LogInformation($"{faqs.Count} FAQs successfully added to the database.");
+                    return;
+                }
+
+                logger.LogInformation("FAQs Seeding skipped.... FAQs already exist in the database.");
             }
         }
     }

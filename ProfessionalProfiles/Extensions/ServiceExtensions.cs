@@ -26,6 +26,16 @@ namespace ProfessionalProfiles.Extensions
                 .AddDefaultTokenProviders();
         }
 
+        public static void ConfigureCors(this IServiceCollection services) =>
+            services.AddCors(options =>
+            {
+                options.AddPolicy("CorsPolicy", builder =>
+                    builder.WithOrigins("http://localhost:4200")
+                        .AllowCredentials()
+                        .AllowAnyMethod()
+                        .AllowAnyHeader());
+            });
+
         public static void ConfigureJWT(this IServiceCollection services, IConfiguration configuration)
         {
             services.AddAuthentication(opt =>

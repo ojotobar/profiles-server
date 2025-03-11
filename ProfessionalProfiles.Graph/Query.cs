@@ -277,5 +277,19 @@ namespace ProfessionalProfiles.Graph
             return new ExperiencesPayload(experiences, "Records retrieved successfully", true);
         }
         #endregion
+
+        #region FAQs
+        /// <summary>
+        /// Gets paginated list of FAQs
+        /// </summary>
+        /// <param name="repository"></param>
+        /// <returns></returns>
+        [UseOffsetPaging(IncludeTotalCount = true)]
+        public IQueryable<Faqs> GetFaqs([Service] IRepositoryManager repository)
+        {
+            return repository.Faqs.FindAsQueryable(f => !f.IsDeprecated)
+                .OrderBy(f => f.CreatedOn);
+        }
+        #endregion
     }
 }
