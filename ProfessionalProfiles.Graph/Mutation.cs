@@ -834,6 +834,12 @@ namespace ProfessionalProfiles.Graph
         public async Task<ExperiencesPayload> AddExperiencesAsync(List<ExperienceInput> inputs,
             IRepositoryManager repository)
         {
+            var userId = repository.User.GetLoggedInUserId().ToGuid();
+            if (userId.IsEmpty())
+            {
+                return new ExperiencesPayload([], "Permission denied!!!");
+            }
+
             foreach (var input in inputs)
             {
                 var validationResult = new ExperienceInputValidator().Validate(input);
@@ -842,12 +848,6 @@ namespace ProfessionalProfiles.Graph
                     var message = validationResult.Errors.FirstOrDefault()?.ErrorMessage ?? "Invalid input";
                     return new ExperiencesPayload([], message);
                 }
-            }
-
-            var userId = repository.User.GetLoggedInUserId().ToGuid();
-            if (userId.IsEmpty())
-            {
-                return new ExperiencesPayload([], "Permission denied!!!");
             }
 
             var experiences = inputs.Initialize(userId);

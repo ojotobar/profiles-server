@@ -18,6 +18,7 @@ namespace ProfessionalProfiles.Entities.Models
         public DateTime UpdatedOn { get; set; } = DateTime.Now;
         public DateTime DeactivatedOn { get; set; } = DateTime.MaxValue;
         public bool IsDeprecated { get; set; }
+        public bool IsPremium { get; set; }
         public ProfessionalLocation? Location { get; set; }
         public long KeyMarker { get; set; }
         public string? ProfilePicture { get; set; }

@@ -5,12 +5,7 @@ using Microsoft.AspNetCore.Identity;
 using ProfessionalProfiles.Data.Interface;
 using ProfessionalProfiles.Entities.Models;
 using ProfessionalProfiles.Graph.Account;
-using ProfessionalProfiles.Graph.CareerSummaries;
-using ProfessionalProfiles.Graph.Certfications;
 using ProfessionalProfiles.Graph.Dto;
-using ProfessionalProfiles.Graph.Experiences;
-using ProfessionalProfiles.Graph.Projects;
-using ProfessionalProfiles.GraphQL.Profile;
 using ProfessionalProfiles.Shared.Extensions;
 using System.Net;
 
@@ -55,23 +50,42 @@ namespace ProfessionalProfiles.Graph
         /// <param name="userManager"></param>
         /// <param name="repository"></param>
         /// <returns></returns>
-        public async Task<ProfilePayload> GetProfileAsync([Service] UserManager<Professional> userManager,
+        public async Task<ProfessionalDto?> GetProfileAsync([Service] UserManager<Professional> userManager,
             [Service] IRepositoryManager repository, [GlobalState] string? apiKey = "")
         {
             var userId = repository.User.GetLoggedInOrApiKeyUserId(apiKey!);
 
             if (userId.IsEmpty())
             {
-                return new ProfilePayload(ProfessionalDto.MapData(null), "Access denied");
+                return new ProfessionalDto();
             }
 
             var user = await userManager.FindByIdAsync(userId.ToString());
             if (user == null)
             {
-                return new ProfilePayload(ProfessionalDto.MapData(user), "User not found!");
+                return new ProfessionalDto();
             }
 
-            return new ProfilePayload(ProfessionalDto.MapData(user), "Profile retrieved successfully", true);
+            return ProfessionalDto.MapData(user);
+        }
+
+        public async Task<List<string>> GetSkillsAsync([Service] UserManager<Professional> userManager,
+            [Service] IRepositoryManager repository, [GlobalState] string? apiKey = "")
+        {
+            var userId = repository.User.GetLoggedInOrApiKeyUserId(apiKey!);
+
+            if (userId.IsEmpty())
+            {
+                return [];
+            }
+
+            var user = await userManager.FindByIdAsync(userId.ToString());
+            if (user == null)
+            {
+                return [];
+            }
+
+            return user.Skills ?? [];
         }
         #endregion
 
@@ -82,19 +96,18 @@ namespace ProfessionalProfiles.Graph
         /// <param name="repository"></param>
         /// <param name="apiKey"></param>
         /// <returns></returns>
-        public async Task<List<Education>> GetEducationsAsync([Service] IRepositoryManager repository,
+        public IQueryable<Education> GetEducations([Service] IRepositoryManager repository,
             [GlobalState] string? apiKey = "")
         {
             var userId = repository.User.GetLoggedInOrApiKeyUserId(apiKey!);
             if (userId.IsEmpty())
             {
-                return [];
+                return new List<Education>().AsQueryable();
             }
 
-            return await Task.Run(() => repository.Education
+            return repository.Education
                 .FindAsQueryable(e => !e.IsDeprecated && e.UserId.Equals(userId.ToString()))
-                .OrderByDescending(e => e.StartDate)
-                .ToList());
+                .OrderByDescending(e => e.StartDate);
         }
 
         /// <summary>
@@ -113,13 +126,8 @@ namespace ProfessionalProfiles.Graph
                 return null;
             }
 
-            var record = await repository.Education.FindOneAsync(e => e.Id == id && !e.IsDeprecated);
-            if (record == null)
-            {
-                return null;
-            }
-
-            return record;
+            return await repository.Education
+                .FindOneAsync(e => e.Id == id && !e.IsDeprecated);
         }
         #endregion
 
@@ -130,19 +138,17 @@ namespace ProfessionalProfiles.Graph
         /// <param name="repository"></param>
         /// <param name="apiKey"></param>
         /// <returns></returns>
-        public async Task<CertificationPayload> GetCertificationAsync(Guid id, [Service] IRepositoryManager repository,
+        public async Task<Certification?> GetCertificationAsync(Guid id, [Service] IRepositoryManager repository,
             [GlobalState] string? apiKey)
         {
             var userId = repository.User.GetLoggedInOrApiKeyUserId(apiKey!);
             if (userId.IsEmpty())
             {
-                return new CertificationPayload(null, "Access denied!!!");
+                return null;
             }
 
-            var certification = await repository.Certification
+            return await repository.Certification
                 .FindAsync(c => !c.IsDeprecated && c.Id.Equals(id));
-
-            return new CertificationPayload(certification, "Record retrieved successfully", true);
         }
 
         /// <summary>
@@ -151,19 +157,17 @@ namespace ProfessionalProfiles.Graph
         /// <param name="repository"></param>
         /// <param name="apiKey"></param>
         /// <returns></returns>
-        public async Task<CertificationsPayload> GetCertificationsAsync([Service] IRepositoryManager repository,
+        public IQueryable<Certification> GetCertifications([Service] IRepositoryManager repository,
             [GlobalState] string? apiKey)
         {
             var userId = repository.User.GetLoggedInOrApiKeyUserId(apiKey!);
             if (userId.IsEmpty())
             {
-                return new CertificationsPayload([], "Access denied!!!");
+                return new List<Certification>().AsQueryable();
             }
 
-            var certifications = await repository.Certification
-                .FindRangeAsync(c => !c.IsDeprecated && c.UserId.Equals(userId));
-
-            return new CertificationsPayload(certifications, "Records retrieved successfully", true);
+            return repository.Certification
+                .FindAsQueryable(c => !c.IsDeprecated && c.UserId.Equals(userId));
         }
         #endregion
 
@@ -174,19 +178,17 @@ namespace ProfessionalProfiles.Graph
         /// <param name="repository"></param>
         /// <param name="apiKey"></param>
         /// <returns></returns>
-        public async Task<ProfessionalSummaryPayload> GetProfessionalSummaryAsync(Guid id, [Service] IRepositoryManager repository,
+        public async Task<ProfessionalSummary?> GetProfessionalSummaryAsync(Guid id, [Service] IRepositoryManager repository,
             [GlobalState] string? apiKey)
         {
             var userId = repository.User.GetLoggedInOrApiKeyUserId(apiKey!);
             if (userId.IsEmpty())
             {
-                return new ProfessionalSummaryPayload(null, "Access denied!!!");
+                return null;
             }
 
-            var summary = await repository.Summary
+            return await repository.Summary
                 .FindAsync(s => !s.IsDeprecated && s.Id.Equals(id) && s.UserId.Equals(userId));
-
-            return new ProfessionalSummaryPayload(summary, "Record retrieved successfully", true);
         }
         #endregion
 
@@ -197,19 +199,17 @@ namespace ProfessionalProfiles.Graph
         /// <param name="repository"></param>
         /// <param name="apiKey"></param>
         /// <returns></returns>
-        public async Task<ProjectPayload> GetProjectAsync(Guid id, [Service] IRepositoryManager repository,
+        public async Task<Project?> GetProjectAsync(Guid id, [Service] IRepositoryManager repository,
             [GlobalState] string? apiKey)
         {
             var userId = repository.User.GetLoggedInOrApiKeyUserId(apiKey!);
             if (userId.IsEmpty())
             {
-                return new ProjectPayload(null, "Access denied!!!");
+                return null;
             }
 
-            var project = await repository.Project
+            return await repository.Project
                 .FindAsync(c => !c.IsDeprecated && c.Id.Equals(id) && c.UserId.Equals(userId));
-
-            return new ProjectPayload(project, "Record retrieved successfully", true);
         }
 
         /// <summary>
@@ -218,19 +218,17 @@ namespace ProfessionalProfiles.Graph
         /// <param name="repository"></param>
         /// <param name="apiKey"></param>
         /// <returns></returns>
-        public async Task<ProjectsPayload> GetProjectsAsync([Service] IRepositoryManager repository,
+        public IQueryable<Project> GetProjects([Service] IRepositoryManager repository,
             [GlobalState] string? apiKey)
         {
             var userId = repository.User.GetLoggedInOrApiKeyUserId(apiKey!);
             if (userId.IsEmpty())
             {
-                return new ProjectsPayload([], "Access denied!!!");
+                return new List<Project>().AsQueryable();
             }
 
-            var certifications = await repository.Project
-                .FindRangeAsync(c => !c.IsDeprecated && c.UserId.Equals(userId));
-
-            return new ProjectsPayload(certifications, "Records retrieved successfully", true);
+            return repository.Project
+                .FindAsQueryable(c => !c.IsDeprecated && c.UserId.Equals(userId));
         }
         #endregion
 
@@ -241,19 +239,17 @@ namespace ProfessionalProfiles.Graph
         /// <param name="repository"></param>
         /// <param name="apiKey"></param>
         /// <returns></returns>
-        public async Task<ExperiencePayload> GetExperienceAsync(Guid id, [Service] IRepositoryManager repository,
+        public async Task<WorkExperience?> GetExperienceAsync(Guid id, [Service] IRepositoryManager repository,
             [GlobalState] string? apiKey)
         {
             var userId = repository.User.GetLoggedInOrApiKeyUserId(apiKey!);
             if (userId.IsEmpty())
             {
-                return new ExperiencePayload(null, "Access denied!!!");
+                return null;
             }
 
-            var experience = await repository.WorkExperience
+            return await repository.WorkExperience
                 .FindAsync(c => !c.IsDeprecated && c.Id.Equals(id) && c.UserId.Equals(userId));
-
-            return new ExperiencePayload(experience, "Record retrieved successfully", true);
         }
 
         /// <summary>
@@ -262,19 +258,17 @@ namespace ProfessionalProfiles.Graph
         /// <param name="repository"></param>
         /// <param name="apiKey"></param>
         /// <returns></returns>
-        public async Task<ExperiencesPayload> GetExperiencesAsync([Service] IRepositoryManager repository,
+        public IQueryable<WorkExperience> GetExperiences([Service] IRepositoryManager repository,
             [GlobalState] string? apiKey)
         {
             var userId = repository.User.GetLoggedInOrApiKeyUserId(apiKey!);
             if (userId.IsEmpty())
             {
-                return new ExperiencesPayload([], "Access denied!!!");
+                return new List<WorkExperience>().AsQueryable();
             }
 
-            var experiences = await repository.WorkExperience
-                .FindRangeAsync(c => !c.IsDeprecated && c.UserId.Equals(userId));
-
-            return new ExperiencesPayload(experiences, "Records retrieved successfully", true);
+            return repository.WorkExperience
+                .FindAsQueryable(c => !c.IsDeprecated && c.UserId.Equals(userId));
         }
         #endregion
 
@@ -287,8 +281,7 @@ namespace ProfessionalProfiles.Graph
         [UseOffsetPaging(IncludeTotalCount = true)]
         public IQueryable<Faqs> GetFaqs([Service] IRepositoryManager repository)
         {
-            return repository.Faqs.FindAsQueryable(f => !f.IsDeprecated)
-                .OrderBy(f => f.CreatedOn);
+            return repository.Faqs.FindAsQueryable(f => !f.IsDeprecated);
         }
         #endregion
     }
