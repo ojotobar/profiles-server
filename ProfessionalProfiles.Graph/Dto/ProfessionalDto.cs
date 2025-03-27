@@ -19,7 +19,6 @@ namespace ProfessionalProfiles.Graph.Dto
         public ProfessionalLocation? Location { get; set; }
         public string Email { get; set; } = string.Empty;
         public string? PhoneNumber { get; set; }
-        public List<string> Skills { get; set; } = [];
         public string? PhotoUrl { get; set; }
         public string? CVUrl { get; set; }
 
@@ -41,7 +40,6 @@ namespace ProfessionalProfiles.Graph.Dto
                 LastLogin = user.LastLogin,
                 UpdatedOn = user.UpdatedOn,
                 Location = user.Location,
-                Skills = user.Skills,
                 CVUrl = user.ResumeLink,
                 PhotoUrl = user.ProfilePicture
             };
