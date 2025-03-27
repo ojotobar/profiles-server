@@ -1,8 +1,6 @@
-﻿using ProfessionalProfiles.Entities.Models;
+﻿using ProfessionalProfiles.Entities.Enums;
 
 namespace ProfessionalProfiles.Graph.Skills
 {
-    public record SkillInput(string Name);
-    public record SkillPayload(Skill? Skill, string Message, bool Success = false);
-    public record SkillsPayload(List<Skill> Skills, string Message, bool Success = false);
+    public record SkillInput(string Name, ESkillLevel Level, int Years, bool IsCertified = false);
 }

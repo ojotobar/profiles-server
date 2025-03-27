@@ -3,6 +3,7 @@ using ProfessionalProfiles.Graph.CareerSummaries;
 using ProfessionalProfiles.Graph.Certfications;
 using ProfessionalProfiles.Graph.Experiences;
 using ProfessionalProfiles.Graph.Projects;
+using ProfessionalProfiles.Graph.Skills;
 using ProfessionalProfiles.Shared.Extensions;
 
 namespace ProfessionalProfiles.Graph.Dto
@@ -110,14 +111,33 @@ namespace ProfessionalProfiles.Graph.Dto
             return results;
         }
 
-        public static List<string> Map(this List<string> inputs)
+        public static List<Skill> Map(this List<SkillInput> inputs, Guid userId)
         {
-            var outputs = new List<string>();
+            var outputs = new List<Skill>();
             foreach (var input in inputs)
             {
-                outputs.Add(input.CapitalizeText());
+                outputs.Add(new Skill
+                {
+                    Name= input.Name.CapitalizeText(),
+                    Level= input.Level,
+                    YearsOfExperience = input.Years,
+                    Certified = input.IsCertified,
+                    UserId = userId
+                });
             }
             return outputs;
+        }
+
+        public static Skill Map(this SkillInput input, Skill existingSkill)
+        {
+            var outputs = new List<Skill>();
+            existingSkill.Name = input.Name.CapitalizeText();
+            existingSkill.Level = input.Level;
+            existingSkill.YearsOfExperience = input.Years;
+            existingSkill.Certified = input.IsCertified;
+            existingSkill.UpdatedOn = DateTime.UtcNow;
+            
+            return existingSkill;
         }
     }
 }

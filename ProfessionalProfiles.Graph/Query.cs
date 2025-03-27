@@ -68,25 +68,6 @@ namespace ProfessionalProfiles.Graph
 
             return ProfessionalDto.MapData(user);
         }
-
-        public async Task<List<string>> GetSkillsAsync([Service] UserManager<Professional> userManager,
-            [Service] IRepositoryManager repository, [GlobalState] string? apiKey = "")
-        {
-            var userId = repository.User.GetLoggedInOrApiKeyUserId(apiKey!);
-
-            if (userId.IsEmpty())
-            {
-                return [];
-            }
-
-            var user = await userManager.FindByIdAsync(userId.ToString());
-            if (user == null)
-            {
-                return [];
-            }
-
-            return user.Skills ?? [];
-        }
         #endregion
 
         #region Education Section
@@ -290,6 +271,45 @@ namespace ProfessionalProfiles.Graph
             return repository.WorkExperience
                 .FindAsQueryable(c => !c.IsDeprecated && c.UserId.Equals(userId))
                 .OrderByDescending(c => c.StartDate);
+        }
+        #endregion
+
+        #region Skills Section
+        /// <summary>
+        /// Get User Skills
+        /// </summary>
+        /// <param name="repository"></param>
+        /// <param name="apiKey"></param>
+        /// <returns></returns>
+        public IQueryable<Skill> GetSkillsAsync([Service] IRepositoryManager repository, [GlobalState] string? apiKey = "")
+        {
+            var userId = repository.User.GetLoggedInOrApiKeyUserId(apiKey!);
+
+            if (userId.IsEmpty())
+            {
+                return new List<Skill>().AsQueryable();
+            }
+
+            return repository.Skill.FindAsQueryable(s => s.UserId.Equals(userId));
+        }
+
+        /// <summary>
+        /// Get User Skill By Id
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="repository"></param>
+        /// <param name="apiKey"></param>
+        /// <returns></returns>
+        public async Task<Skill?> GetSkillAsync(Guid id, [Service] IRepositoryManager repository, [GlobalState] string? apiKey = "")
+        {
+            var userId = repository.User.GetLoggedInOrApiKeyUserId(apiKey!);
+
+            if (userId.IsEmpty())
+            {
+                return null;
+            }
+
+            return await repository.Skill.FindAsync(s => s.Id.Equals(id));
         }
         #endregion
 

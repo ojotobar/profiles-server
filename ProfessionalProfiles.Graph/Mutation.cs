@@ -17,6 +17,7 @@ using ProfessionalProfiles.Graph.Experiences;
 using ProfessionalProfiles.Graph.General;
 using ProfessionalProfiles.Graph.Profile;
 using ProfessionalProfiles.Graph.Projects;
+using ProfessionalProfiles.Graph.Skills;
 using ProfessionalProfiles.Graph.UserSkills;
 using ProfessionalProfiles.Graph.Validations;
 using ProfessionalProfiles.Services.Interfaces;
@@ -942,48 +943,88 @@ namespace ProfessionalProfiles.Graph
 
         #region User Skill Section
         /// <summary>
-        /// Add or update user skills
+        /// Adds a list of user skills
         /// </summary>
         /// <param name="inputs"></param>
-        /// <param name="userManager"></param>
-        /// <param name="apiKey"></param>
         /// <param name="repository"></param>
         /// <returns></returns>
         [Authorize]
-        public async Task<ProfessionalSkillsPayload> AddOrUpdateSkillsAsync(List<string> inputs, [Service]UserManager<Professional> userManager, 
-            [GlobalState] string? apiKey, IRepositoryManager repository)
+        public async Task<Payload> AddSkillsAsync(List<SkillInput> inputs, IRepositoryManager repository)
         {
-            var userId = repository.User.GetLoggedInOrApiKeyUserId(apiKey!);
+            var userId = repository.User.GetLoggedInOrApiKeyUserId("");
             if (userId.IsEmpty())
             {
-                return new ProfessionalSkillsPayload([], "Access denied!!!");
+                return new Payload("Access denied!!!");
             }
 
             if (!inputs.IsNotNullOrEmpty())
             {
-                return new ProfessionalSkillsPayload([], "You must enter one or more skills");
+                return new Payload("You must enter one or more skills");
             }
 
-            var validator = new ProfessionalSkillValidator();
+            var validator = new SkillInputValidator();
             foreach (var item in inputs)
             {
                 var result = validator.Validate(item);
                 if (!result.IsValid)
                 {
                     var message = result.Errors.FirstOrDefault()?.ErrorMessage ?? "Invalid input";
-                    return new ProfessionalSkillsPayload([], message);
+                    return new Payload(message);
                 }
             }
 
-            var user = await userManager.FindByIdAsync(userId.ToString());
-            if (user.IsNull())
+            var skillsToAdd = inputs.Map(userId);
+            await repository.Skill.AddRangeAsync(skillsToAdd);
+            return new Payload("Skills update successful", true);
+        }
+
+        /// <summary>
+        /// Update user skills
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="input"></param>
+        /// <param name="apiKey"></param>
+        /// <param name="repository"></param>
+        /// <returns></returns>
+        [Authorize]
+        public async Task<Payload> UpdateSkillAsync(Guid id, SkillInput input, IRepositoryManager repository)
+        {
+            var validator = new SkillInputValidator();
+            var result = validator.Validate(input);
+            if (!result.IsValid)
             {
-                return new ProfessionalSkillsPayload([], "No user record found");
+                var message = result.Errors.FirstOrDefault()?.ErrorMessage ?? "Invalid input";
+                return new Payload(message);
             }
 
-            user!.Skills = inputs.Map();
-            await userManager.UpdateAsync(user);
-            return new ProfessionalSkillsPayload(user!.Skills, "Skills update successful", true);
+            var skillToUpdate = await repository.Skill.FindAsync(s => s.Id.Equals(id) && !s.IsDeprecated);
+            if(skillToUpdate == null)
+            {
+                return new Payload("No record found for the provided id");
+            }
+
+            var skillsToAdd = input.Map(skillToUpdate);
+            await repository.Skill.AddAsync(skillsToAdd);
+            return new Payload("Skill update successful", true);
+        }
+
+        /// <summary>
+        /// Deletes user skills
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="repository"></param>
+        /// <returns></returns>
+        [Authorize]
+        public async Task<Payload> DeleteSkillAsync(Guid id, IRepositoryManager repository)
+        {
+            var skillToDelete = await repository.Skill.FindAsync(s => s.Id.Equals(id) && !s.IsDeprecated);
+            if (skillToDelete == null)
+            {
+                return new Payload("No record found for the provided id");
+            }
+
+            await repository.Skill.DeleteAsync(s => s.Id.Equals(skillToDelete.Id));
+            return new Payload("Skill deleted successful", true);
         }
         #endregion
 

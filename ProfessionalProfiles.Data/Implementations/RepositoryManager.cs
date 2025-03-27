@@ -17,8 +17,6 @@ namespace ProfessionalProfiles.Data.Implementations
             => new OneTimePassRepository(settings));
         private readonly Lazy<ICertificationRepository> certificationRepository = new(()
             => new CertificationRepository(settings));
-        private readonly Lazy<IProfessionalSkillRepository> professionalSkillRepository = new(()
-            => new  ProfessionalSkillRepository(settings));
         private readonly Lazy<ProfessionalSummaryRepository> professionalSummaryRepository = new(()
             => new ProfessionalSummaryRepository(settings));
         private readonly Lazy<IProjectRepository> projectRepository = new(()
@@ -34,7 +32,6 @@ namespace ProfessionalProfiles.Data.Implementations
         public IUserRepository User => userRepository.Value;
         public IOneTimePassRepository OneTimePass => oneTimePassRepository.Value;
         public ICertificationRepository Certification => certificationRepository.Value;
-        public IProfessionalSkillRepository ProfessionalSkill => professionalSkillRepository.Value;
         public ISkillRepository Skill => skillRepository.Value;
         public IWorkExperienceRepository WorkExperience => workExperienceRepository.Value;
         public IProjectRepository Project => projectRepository.Value;

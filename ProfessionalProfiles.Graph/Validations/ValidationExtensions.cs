@@ -45,5 +45,10 @@ namespace ProfessionalProfiles.Graph.Validations
         {
             return !number.HasValue || (number.HasValue && !number.Equals(default));
         }
+
+        internal static bool BeAPositiveInteger(int number)
+        {
+            return number >= 0;
+        }
     }
 }
