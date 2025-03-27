@@ -9,7 +9,7 @@ namespace ProfessionalProfiles.Entities.Models
         public string Name { get; set; } = string.Empty;
         public string Link { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
-        public List<string> Technologoes { get; set; } = [];
+        public List<string> Technologies { get; set; } = [];
         public DateTime CreatedOn { get; set; } = DateTime.UtcNow;
         public DateTime UpdatedOn { get; set; } = DateTime.UtcNow;
         public bool IsDeprecated { get; set; }

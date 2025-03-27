@@ -12,6 +12,7 @@ namespace ProfessionalProfiles.Graph.Dto
         public EStatus Status { get; set; }
         public string? OtherName { get; set; }
         public DateTime LastLogin { get; set; }
+        public DateTime CreatedOn { get; set; }
         public DateTime UpdatedOn { get; set; } = DateTime.Now;
         public DateTime DeactivatedOn { get; set; } = DateTime.MaxValue;
         public bool IsDeprecated { get; set; }
@@ -34,6 +35,7 @@ namespace ProfessionalProfiles.Graph.Dto
                 Status = user.Status,
                 Email = user.Email!,
                 PhoneNumber = user.PhoneNumber,
+                CreatedOn = user.CreatedOn,
                 DeactivatedOn = user.DeactivatedOn,
                 IsDeprecated = user.IsDeprecated,
                 LastLogin = user.LastLogin,

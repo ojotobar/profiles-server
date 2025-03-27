@@ -10,6 +10,7 @@ using ProfessionalProfiles.Entities.Models;
 using ProfessionalProfiles.Graph.Account;
 using ProfessionalProfiles.Graph.CareerSummaries;
 using ProfessionalProfiles.Graph.Certfications;
+using ProfessionalProfiles.Graph.Common;
 using ProfessionalProfiles.Graph.Dto;
 using ProfessionalProfiles.Graph.Educations;
 using ProfessionalProfiles.Graph.Experiences;
@@ -628,23 +629,34 @@ namespace ProfessionalProfiles.Graph
         /// <param name="repository"></param>
         /// <returns></returns>
         [Authorize]
-        public async Task<ProfessionalSummaryPayload> AddProfessionalSummaryAsync(ProfessionalSummaryInput input,
+        public async Task<Payload> AddProfessionalSummaryAsync(ProfessionalSummaryInput input,
             IRepositoryManager repository)
         {
             if (input.Summary.IsNullOrEmpty())
             {
-                return new ProfessionalSummaryPayload(null, "Professional summary field is required.");
+                return new Payload("Professional summary field is required.");
             }
 
             var userId = repository.User.GetLoggedInUserId().ToGuid();
             if (userId.IsEmpty())
             {
-                return new ProfessionalSummaryPayload(null, "Permission denied!!!");
+                return new Payload("Permission denied!!!");
             }
 
-            var summary = input.Initialize(userId);
-            await repository.Summary.AddAsync(summary);
-            return new ProfessionalSummaryPayload(summary, "Professional Summary added successfully", true);
+            var existingRecord = await repository.Summary.FindAsync(s => s.UserId.Equals(userId));
+            if (existingRecord == null)
+            {
+                var summary = input.Initialize(userId);
+                await repository.Summary.AddAsync(summary);
+                return new Payload("Professional Summary added successfully", true);
+            }
+            else //A user may only have one record. Update if already exists.
+            {
+                existingRecord.Summary = input.Summary;
+                existingRecord.UpdatedOn = DateTime.UtcNow;
+                await repository.Summary.EditAsync(s => s.Id.Equals(existingRecord.Id), existingRecord);
+                return new Payload("Professional Summary updated successfully", true);
+            }
         }
 
         /// <summary>
@@ -655,35 +667,35 @@ namespace ProfessionalProfiles.Graph
         /// <param name="repository"></param>
         /// <returns></returns>
         [Authorize]
-        public async Task<ProfessionalSummaryPayload> UpdateCareerSummaryAsync(Guid id, ProfessionalSummaryInput input,
+        public async Task<Payload> UpdateCareerSummaryAsync(Guid id, ProfessionalSummaryInput input,
             IRepositoryManager repository)
         {
             if (input.Summary.IsNullOrEmpty())
             {
-                return new ProfessionalSummaryPayload(null, "Professional summary field is required.");
+                return new Payload("Professional summary field is required.");
             }
 
             var userId = repository.User.GetLoggedInUserId().ToGuid();
             if (userId.IsEmpty())
             {
-                return new ProfessionalSummaryPayload(null, "Permission denied!!!");
+                return new Payload("Permission denied!!!");
             }
 
             var summary = await repository.Summary.FindAsync(s => s.Id.Equals(id) && s.UserId.Equals(userId));
             if (summary.IsNull())
             {
-                return new ProfessionalSummaryPayload(null, "Record not found");
+                return new Payload("Record not found");
             }
 
             var loggedInUserRole = await repository.User.GetUserRoles();
             if (!loggedInUserRole.IsNotNullOrEmpty() || (!loggedInUserRole.Contains(ERoles.Admin) && !userId.Equals(summary!.UserId)))
             {
-                return new ProfessionalSummaryPayload(null, "You're not authorized to perform this action!");
+                return new Payload("You're not authorized to perform this action!");
             }
 
             summary = input.Map(summary!);
             await repository.Summary.EditAsync(c => c.Id.Equals(id), summary);
-            return new ProfessionalSummaryPayload(summary, "Professional summary updated successfully", true);
+            return new Payload("Professional summary updated successfully", true);
         }
 
         /// <summary>
@@ -693,28 +705,28 @@ namespace ProfessionalProfiles.Graph
         /// <param name="repository"></param>
         /// <returns></returns>
         [Authorize]
-        public async Task<ProfessionalSummaryPayload> DeleteCareerSummaryAsync(Guid id, IRepositoryManager repository)
+        public async Task<Payload> DeleteCareerSummaryAsync(Guid id, IRepositoryManager repository)
         {
             var userId = repository.User.GetLoggedInUserId().ToGuid();
             if (userId.IsEmpty())
             {
-                return new ProfessionalSummaryPayload(null, "Permission denied!!!");
+                return new Payload("Permission denied!!!");
             }
 
             var summary = await repository.Summary.FindAsync(c => c.Id.Equals(id));
             if (summary.IsNull())
             {
-                return new ProfessionalSummaryPayload(null, "Record not found");
+                return new Payload("Record not found");
             }
 
             var loggedInUserRole = await repository.User.GetUserRoles();
             if (!loggedInUserRole.IsNotNullOrEmpty() || (!loggedInUserRole.Contains(ERoles.Admin) && !userId.Equals(summary!.UserId)))
             {
-                return new ProfessionalSummaryPayload(null, "You're not authorized to perform this action!");
+                return new Payload("You're not authorized to perform this action!");
             }
 
             await repository.Summary.DeleteAsync(c => c.Id.Equals(id));
-            return new ProfessionalSummaryPayload(null, "Professional Summary record deleted successfully", true);
+            return new Payload("Professional Summary record deleted successfully", true);
         }
         #endregion
 
@@ -863,7 +875,7 @@ namespace ProfessionalProfiles.Graph
         /// <param name="repository"></param>
         /// <returns></returns>
         [Authorize]
-        public async Task<ExperiencePayload> UpdateExperienceInputAsync(Guid id, ExperienceInput input,
+        public async Task<ExperiencePayload> UpdateExperienceAsync(Guid id, ExperienceInput input,
             IRepositoryManager repository)
         {
             var validationResult = new ExperienceInputValidator().Validate(input);
@@ -911,7 +923,7 @@ namespace ProfessionalProfiles.Graph
                 return new ExperiencePayload(null, "Permission denied!!!");
             }
 
-            var experience = await repository.Project.FindAsync(c => c.Id.Equals(id));
+            var experience = await repository.WorkExperience.FindAsync(c => c.Id.Equals(id));
             if (experience.IsNull())
             {
                 return new ExperiencePayload(null, "Record not found");
@@ -923,7 +935,7 @@ namespace ProfessionalProfiles.Graph
                 return new ExperiencePayload(null, "You're not authorized to perform this action!");
             }
 
-            await repository.Project.DeleteAsync(c => c.Id.Equals(id));
+            await repository.WorkExperience.DeleteAsync(c => c.Id.Equals(id));
             return new ExperiencePayload(null, "Experience deleted successfully", true);
         }
         #endregion

@@ -57,7 +57,7 @@ namespace ProfessionalProfiles.Graph.Dto
                 Name = input.ProjectName,
                 Link = input.Link ?? string.Empty,
                 Description = input.Summary,
-                Technologoes = input.Technologies ?? [],
+                Technologies = input.Technologies ?? [],
                 UserId = userId
             }));
             return results;
@@ -66,7 +66,7 @@ namespace ProfessionalProfiles.Graph.Dto
         public static Project Map(this ProjectInput input, Project existing)
         {
             existing.Name = input.ProjectName;
-            existing.Technologoes = input.Technologies ?? [];
+            existing.Technologies = input.Technologies ?? [];
             existing.Description = input.Summary;
             existing.Link = input.Link ?? string.Empty;
             existing.UpdatedOn = DateTime.UtcNow;
@@ -89,6 +89,7 @@ namespace ProfessionalProfiles.Graph.Dto
                     ? input.Date.AddYears(input.YearsOfValidity.Value)
                     : null;
             existing.UpdatedOn = DateTime.UtcNow;
+            existing.Link = input.Link;
             return existing;
         }
 
@@ -101,6 +102,7 @@ namespace ProfessionalProfiles.Graph.Dto
                 Institution = input.InstitutionName,
                 UserId = userId,
                 DateObtained = input.Date,
+                Link = input.Link,
                 Expires = input.YearsOfValidity.HasValue
                     ? input.Date.AddYears(input.YearsOfValidity.Value)
                     : null

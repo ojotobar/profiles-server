@@ -175,10 +175,11 @@ namespace ProfessionalProfiles.Graph
         /// <summary>
         /// Get Professional Summary by id
         /// </summary>
+        /// <param name="id"></param>
         /// <param name="repository"></param>
         /// <param name="apiKey"></param>
         /// <returns></returns>
-        public async Task<ProfessionalSummary?> GetProfessionalSummaryAsync(Guid id, [Service] IRepositoryManager repository,
+        public async Task<ProfessionalSummary?> GetProfessionalSummaryByIdAsync(Guid id, [Service] IRepositoryManager repository,
             [GlobalState] string? apiKey)
         {
             var userId = repository.User.GetLoggedInOrApiKeyUserId(apiKey!);
@@ -189,6 +190,25 @@ namespace ProfessionalProfiles.Graph
 
             return await repository.Summary
                 .FindAsync(s => !s.IsDeprecated && s.Id.Equals(id) && s.UserId.Equals(userId));
+        }
+
+        /// <summary>
+        /// Get Professional Summary by User
+        /// </summary>
+        /// <param name="repository"></param>
+        /// <param name="apiKey"></param>
+        /// <returns></returns>
+        public async Task<ProfessionalSummary?> GetProfessionalSummaryAsync([Service] IRepositoryManager repository,
+            [GlobalState] string? apiKey)
+        {
+            var userId = repository.User.GetLoggedInOrApiKeyUserId(apiKey!);
+            if (userId.IsEmpty())
+            {
+                return null;
+            }
+
+            return await repository.Summary
+                .FindAsync(s => !s.IsDeprecated && s.UserId.Equals(userId));
         }
         #endregion
 
@@ -268,7 +288,8 @@ namespace ProfessionalProfiles.Graph
             }
 
             return repository.WorkExperience
-                .FindAsQueryable(c => !c.IsDeprecated && c.UserId.Equals(userId));
+                .FindAsQueryable(c => !c.IsDeprecated && c.UserId.Equals(userId))
+                .OrderByDescending(c => c.StartDate);
         }
         #endregion
 
