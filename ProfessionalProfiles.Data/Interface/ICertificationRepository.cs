@@ -7,6 +7,7 @@ namespace ProfessionalProfiles.Data.Interface
     {
         Task AddAsync(Certification certification);
         Task AddRangeAsync(List<Certification> certifications);
+        Task<long> CountAllAsync(Expression<Func<Certification, bool>> expression);
         Task DeleteAsync(Expression<Func<Certification, bool>> expression);
         Task DeleteRangeAsync(Expression<Func<Certification, bool>> expression, CancellationToken token);
         Task EditAsync(Expression<Func<Certification, bool>> expression, Certification certification);

@@ -1,4 +1,6 @@
-﻿using ProfessionalProfiles.Entities.Models;
+﻿using CSharpTypes.Extensions.Guid;
+using ProfessionalProfiles.Data.Interface;
+using ProfessionalProfiles.Entities.Models;
 using ProfessionalProfiles.Graph.CareerSummaries;
 using ProfessionalProfiles.Graph.Certfications;
 using ProfessionalProfiles.Graph.Experiences;
@@ -128,7 +130,7 @@ namespace ProfessionalProfiles.Graph.Dto
             return outputs;
         }
 
-        public static Skill Map(this SkillInput input, Skill existingSkill)
+        public static void Map(this SkillInput input, Skill existingSkill)
         {
             var outputs = new List<Skill>();
             existingSkill.Name = input.Name.CapitalizeText();
@@ -136,8 +138,81 @@ namespace ProfessionalProfiles.Graph.Dto
             existingSkill.YearsOfExperience = input.Years;
             existingSkill.Certified = input.IsCertified;
             existingSkill.UpdatedOn = DateTime.UtcNow;
+        }
+
+        public static async Task<(int Progress, bool CanGenerate)> CanGenerateApiKey(this IRepositoryManager repository, 
+            bool isEmailConfirmed, bool hasLocationAdded, bool hasProfilePics, bool hasCvAdded)
+        {
+            const int threshhold = 80;
+            int progress = 10;
+            if (isEmailConfirmed)
+            {
+                progress += 10;
+            }
+
+            if (hasCvAdded)
+            {
+                progress += 5;
+            }
+
+            if (hasProfilePics)
+            {
+                progress += 5;
+            }
+
+            if (hasLocationAdded)
+            {
+                progress += 10;
+            }
+
+            var userId = repository.User.GetLoggedInOrApiKeyUserId("");
+            if (userId.IsEmpty())
+            {
+                return (progress, false);
+            }
+
+            var hasEducation = await repository.Education.HasAnyAsync(e => e.UserId.Equals(userId));
+            if(hasEducation)
+            {
+                progress += 10;
+            }
+
+            var hasExperience = await repository.WorkExperience.HasAnyAsync(xp => xp.UserId.Equals(userId));
+            if (hasExperience)
+            {
+                progress += 10;
+            }
+
+            var hasSkills = await repository.Skill.HasAnyAsync(sk => sk.UserId.Equals(userId));
+            if (hasSkills)
+            {
+                progress += 10;
+            }
+
+            var hasProjects = await repository.Project.HasAnyAsync(pro => pro.UserId.Equals(userId));
+            if (hasProjects)
+            {
+                progress += 10;
+            }
+
+            var hasCert = await repository.Certification.HasAnyAsync(cert => cert.UserId.Equals(userId));
+            if (hasCert)
+            {
+                progress += 10;
+            }
+
+            var hasSummary = await repository.Summary.HasAsync(s => s.UserId.Equals(userId));
+            if (hasSummary)
+            {
+                progress += 10;
+            }
             
-            return existingSkill;
+            return 
+                (
+                    progress,
+                    isEmailConfirmed && hasCvAdded && hasProfilePics && hasLocationAdded && 
+                    hasEducation && hasExperience && hasSkills && hasSummary && progress >= threshhold
+                );
         }
     }
 }

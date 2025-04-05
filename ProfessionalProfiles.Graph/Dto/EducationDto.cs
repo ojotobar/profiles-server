@@ -1,11 +1,12 @@
-﻿using ProfessionalProfiles.Entities.Models;
+﻿using CSharpTypes.Extensions.Guid;
+using ProfessionalProfiles.Entities.Models;
 using ProfessionalProfiles.Graph.Educations;
 
 namespace ProfessionalProfiles.Graph.Dto
 {
     public class EducationDto
     {
-        public static Education CreateMap(string userId, EducationInput input)
+        public static Education CreateMap(Guid userId, EducationInput input)
         {
             return new Education
             {

@@ -29,5 +29,11 @@ namespace ProfessionalProfiles.Data.Implementations
 
         public async Task<List<Education>> FindAsync(Expression<Func<Education, bool>> expression) =>
             await GetManyAsync(expression);
+
+        public async Task<long> CountAllAsync(Expression<Func<Education, bool>> expression) =>
+            await CountAsync(expression);
+
+        public async Task<bool> HasAnyAsync(Expression<Func<Education, bool>> expression)
+            => await ExistsAsync(expression);
     }
 }

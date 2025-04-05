@@ -7,6 +7,7 @@ namespace ProfessionalProfiles.Data.Interface
     {
         Task AddAsync(Project project);
         Task AddRangeAsync(List<Project> projects);
+        Task<long> CountAllAsync(Expression<Func<Project, bool>> expression);
         Task DeleteAsync(Expression<Func<Project, bool>> expression);
         Task DeleteRangeAsync(Expression<Func<Project, bool>> expression, CancellationToken token);
         Task EditAsync(Expression<Func<Project, bool>> expression, Project project);

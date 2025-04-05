@@ -2,7 +2,9 @@
 using CSharpTypes.Extensions.String;
 using HotChocolate.Authorization;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Win32;
 using ProfessionalProfiles.Data.Interface;
+using ProfessionalProfiles.Entities.Enums;
 using ProfessionalProfiles.Entities.Models;
 using ProfessionalProfiles.Graph.Account;
 using ProfessionalProfiles.Graph.Dto;
@@ -27,21 +29,32 @@ namespace ProfessionalProfiles.Graph
             var loggedInUserId = repository.User.GetLoggedInUserId();
             if (loggedInUserId.IsNullOrEmpty())
             {
-                return new ApiKeyPayload(ApiKeyDto.Initialize("", "Access denied", HttpStatusCode.Unauthorized));
+                return new ApiKeyPayload("", "Access denied");
             }
 
             var user = await userManager.FindByIdAsync(loggedInUserId);
             if (user == null)
             {
-                return new ApiKeyPayload(ApiKeyDto.Initialize("", "User not found", HttpStatusCode.NotFound));
+                return new ApiKeyPayload("", "User not found");
             }
 
-            var ticks = DateTime.UtcNow.Ticks;
-            user!.KeyMarker = ticks;
+            var canGenerate = await repository.CanGenerateApiKey(user.EmailConfirmed,
+                user.Location != null, user.ProfilePicture != null, user.ResumeLink != null);
 
-            var apiKey = user.Id.EncodeGuidAsBase64(ticks);
-            await userManager.UpdateAsync(user);
-            return new ApiKeyPayload(ApiKeyDto.Initialize(apiKey, "", HttpStatusCode.OK, true));
+            if (canGenerate.CanGenerate)
+            {
+                var ticks = DateTime.UtcNow.Ticks;
+                user!.KeyMarker = ticks;
+
+                var apiKey = user.Id.EncodeGuidAsBase64(ticks);
+                await userManager.UpdateAsync(user);
+                return new ApiKeyPayload(apiKey, "Your API Key successfully generated.", true);
+            }
+            else
+            {
+                return new ApiKeyPayload("", 
+                    $"You are not allowed to generate API Key at the moment. Get your account completion to 80% from {canGenerate.Progress}% to continue");
+            }
         }
 
         /// <summary>
@@ -57,16 +70,57 @@ namespace ProfessionalProfiles.Graph
 
             if (userId.IsEmpty())
             {
-                return new ProfessionalDto();
+                return null;
             }
 
             var user = await userManager.FindByIdAsync(userId.ToString());
             if (user == null)
             {
-                return new ProfessionalDto();
+                return null;
             }
 
             return ProfessionalDto.MapData(user);
+        }
+
+        /// <summary>
+        /// Gets logged in user's profile summary
+        /// </summary>
+        /// <param name="repository"></param>
+        /// <param name="apiKey"></param>
+        /// <returns></returns>
+        public async Task<ProfileSummaryDto?> GetUserSummaryAsync([Service] IRepositoryManager repository,
+            [Service] UserManager<Professional> userManager)
+        {
+            var userId = repository.User.GetLoggedInOrApiKeyUserId("");
+            if (userId.IsEmpty())
+            {
+                return null;
+            }
+
+            var user = await userManager.FindByIdAsync(userId.ToString());
+            if(user == null)
+            {
+                return null;
+            }
+
+            var educations = await repository.Education.CountAllAsync(e => e.UserId.Equals(userId));
+            var experiences = await repository.WorkExperience.CountAllAsync(we => we.UserId.Equals(userId));
+            var skills = await repository.Skill.CountAllAsync(s => s.UserId.Equals(userId));
+            var projects = await repository.Project.CountAllAsync(p => p.UserId.Equals(userId));
+            var certs = await repository.Certification.CountAllAsync(c => c.UserId.Equals(userId));
+            var hasSummary = await repository.Summary.HasAsync(cs => cs.UserId.Equals(userId));
+
+            var canGenerate = await repository.CanGenerateApiKey(user.EmailConfirmed, 
+                user.Location != null, user.ProfilePicture != null, user.ResumeLink != null);
+
+            var apiKey = "";
+            if(user.KeyMarker != default)
+            {
+                apiKey = user.Id.EncodeGuidAsBase64(user.KeyMarker);
+            }
+
+            return new ProfileSummaryDto(educations, experiences, skills, projects, certs, 
+                hasSummary, canGenerate.Progress, canGenerate.CanGenerate, apiKey);
         }
         #endregion
 
@@ -87,7 +141,7 @@ namespace ProfessionalProfiles.Graph
             }
 
             return repository.Education
-                .FindAsQueryable(e => !e.IsDeprecated && e.UserId.Equals(userId.ToString()))
+                .FindAsQueryable(e => !e.IsDeprecated && e.UserId.Equals(userId))
                 .OrderByDescending(e => e.StartDate);
         }
 
@@ -281,7 +335,7 @@ namespace ProfessionalProfiles.Graph
         /// <param name="repository"></param>
         /// <param name="apiKey"></param>
         /// <returns></returns>
-        public IQueryable<Skill> GetSkillsAsync([Service] IRepositoryManager repository, [GlobalState] string? apiKey = "")
+        public IQueryable<Skill> GetSkills([Service] IRepositoryManager repository, [GlobalState] string? apiKey = "")
         {
             var userId = repository.User.GetLoggedInOrApiKeyUserId(apiKey!);
 
@@ -290,7 +344,10 @@ namespace ProfessionalProfiles.Graph
                 return new List<Skill>().AsQueryable();
             }
 
-            return repository.Skill.FindAsQueryable(s => s.UserId.Equals(userId));
+            return repository.Skill
+                .FindAsQueryable(s => s.UserId.Equals(userId))
+                .OrderBy(s => s.Name)
+                .ThenByDescending(s => s.Level);
         }
 
         /// <summary>
@@ -310,6 +367,24 @@ namespace ProfessionalProfiles.Graph
             }
 
             return await repository.Skill.FindAsync(s => s.Id.Equals(id));
+        }
+
+        /// <summary>
+        /// Gets user skills count
+        /// </summary>
+        /// <param name="repository"></param>
+        /// <returns></returns>
+        [Authorize]
+        public async Task<int> GetSkillsCountAsync([Service] IRepositoryManager repository)
+        {
+            var userId = repository.User.GetLoggedInOrApiKeyUserId("");
+
+            if (userId.IsEmpty())
+            {
+                return default;
+            }
+
+            return (int)(await repository.Skill.CountAllAsync(s => s.UserId.Equals(userId)));
         }
         #endregion
 

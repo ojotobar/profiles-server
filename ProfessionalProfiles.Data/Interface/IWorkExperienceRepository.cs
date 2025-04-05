@@ -7,6 +7,7 @@ namespace ProfessionalProfiles.Data.Interface
     {
         Task AddAsync(WorkExperience workExperience);
         Task AddRangeAsync(List<WorkExperience> workExperiences);
+        Task<long> CountAllAsync(Expression<Func<WorkExperience, bool>> expression);
         Task DeleteAsync(Expression<Func<WorkExperience, bool>> expression);
         Task DeleteRangeAsync(Expression<Func<WorkExperience, bool>> expression, CancellationToken token);
         Task EditAsync(Expression<Func<WorkExperience, bool>> expression, WorkExperience workExperience);

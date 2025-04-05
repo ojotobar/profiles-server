@@ -8,7 +8,21 @@ namespace ProfessionalProfiles.Shared.Extensions
     {
         public static string CapitalizeText(this string title)
         {
-            return new CultureInfo("en-US", false).TextInfo.ToTitleCase(title);
+            return IsLastOrLastTwoUpper(title) ? title : new CultureInfo("en-US", false).TextInfo.ToTitleCase(title);
+        }
+
+        public static bool IsLastOrLastTwoUpper(string text)
+        {
+            var isTrue = false;
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                return isTrue;
+            }
+
+            text = text.Trim();
+            var sub = text.Length >= 2 ? text[^2..] : text[^1..];
+            isTrue = sub.All(char.IsUpper);
+            return isTrue;
         }
 
         public static string EncodeGuidAsBase64(this Guid guid, long ticks)

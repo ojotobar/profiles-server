@@ -37,5 +37,8 @@ namespace ProfessionalProfiles.Data.Implementations
 
         public async Task<bool> HasAnyAsync(Expression<Func<Skill, bool>> expression)
             => await ExistsAsync(expression);
+
+        public async Task<long> CountAllAsync(Expression<Func<Skill, bool>> expression) =>
+            await CountAsync(expression);
     }
 }

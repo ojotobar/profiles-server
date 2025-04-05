@@ -1,6 +1,4 @@
-﻿using ProfessionalProfiles.Graph.Dto;
-
-namespace ProfessionalProfiles.Graph.Account
+﻿namespace ProfessionalProfiles.Graph.Account
 {
-    public record ApiKeyPayload(ApiKeyDto data);
+    public record ApiKeyPayload(string ApiKey, string Message, bool Success = false);
 }

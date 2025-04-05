@@ -24,4 +24,6 @@ namespace ProfessionalProfiles.Graph.Account
         public bool MatchPassword => !string.IsNullOrWhiteSpace(Password) &&
             !string.IsNullOrWhiteSpace(ConfirmPassword) && Password.Equals(ConfirmPassword);
     }
+
+    public record ProfileDetailsInput(string FirstName, string LastName, string? OtherName, string Phone, EGender Gender);
 }

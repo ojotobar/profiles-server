@@ -15,10 +15,8 @@ using ProfessionalProfiles.Graph.Dto;
 using ProfessionalProfiles.Graph.Educations;
 using ProfessionalProfiles.Graph.Experiences;
 using ProfessionalProfiles.Graph.General;
-using ProfessionalProfiles.Graph.Profile;
 using ProfessionalProfiles.Graph.Projects;
 using ProfessionalProfiles.Graph.Skills;
-using ProfessionalProfiles.Graph.UserSkills;
 using ProfessionalProfiles.Graph.Validations;
 using ProfessionalProfiles.Services.Interfaces;
 using System.Net;
@@ -28,6 +26,7 @@ namespace ProfessionalProfiles.Graph
     public class Mutation
     {
         private const long MAXIMAGESIZE = 524228;//512kb
+        private const long MAXSKILLCOUNT = 20;
         private readonly List<string> ALLOWEDIMAGEFORMATS = [".png", ".jpg", ".jpeg"];
         private readonly List<string> ALLOWEDDOCFORMATS = [".pdf", ".docx", ".doc"];
 
@@ -214,7 +213,7 @@ namespace ProfessionalProfiles.Graph
         /// <param name="origin"></param>
         /// <param name="service"></param>
         /// <returns></returns>
-        public async Task<AccountResult> ResetPasswordAsync(ResetPassInput input,
+        public async Task<Payload> ResetPasswordAsync(ResetPassInput input,
             [Service] UserManager<Professional> userManager, [GlobalState] string? origin,
             [Service] IServiceManager service)
         {
@@ -222,16 +221,16 @@ namespace ProfessionalProfiles.Graph
 
             if (user == null || !user.EmailConfirmed)
             {
-                return new AccountResult(string.Empty, $"Could not find a user with the email: {input.Email}, or account not confirmed yet.");
+                return new Payload($"Could not find a user with the email: {input.Email}, or account not confirmed yet.");
             }
 
             var mailSent = await service.Email.SendAccountRecoveryEmail(user, origin!);
 
             if (!mailSent)
             {
-                return new AccountResult(string.Empty, $"Could not send password code.");
+                return new Payload($"Could not send password code.");
             }
-            return new AccountResult(user.Email!, $"Password reset code successfully sent. Please check your email", true);
+            return new Payload($"Password reset code successfully sent. Please check your email", true);
         }
 
         /// <summary>
@@ -241,13 +240,13 @@ namespace ProfessionalProfiles.Graph
         /// <param name="userManager"></param>
         /// <param name="repository"></param>
         /// <returns></returns>
-        public async Task<AccountResult> ChangeForgottenPasswordAsync(ForgotPasswordInput input,
+        public async Task<Payload> ChangeForgottenPasswordAsync(ForgotPasswordInput input,
             [Service] UserManager<Professional> userManager, [Service] IRepositoryManager repository)
         {
             var user = await userManager.FindByEmailAsync(input.Email);
             if (user == null)
             {
-                return new AccountResult(string.Empty, $"Could not find the user with email: {input.Email}.");
+                return new Payload($"Could not find the user with email: {input.Email}.");
             }
 
             var code = await repository.OneTimePass
@@ -258,16 +257,22 @@ namespace ProfessionalProfiles.Graph
 
             if (code == null)
             {
-                return new AccountResult(string.Empty, $"Invalid or expired password reset code. Please generate a new one to continue.");
+                return new Payload($"Invalid or expired password reset code. Please generate a new one to continue.");
             }
+
+            // Update code
+            code!.UpdatedOn = DateTime.UtcNow;
+            code.IsDeprecated = true;
+            code.Used = true;
+            await repository.OneTimePass.EditAsync(c => c.Id.Equals(code.Id), code);
 
             var result = await userManager.ResetPasswordAsync(user, Uri.UnescapeDataString(code.Token), input.NewPassword);
             if (!result.Succeeded)
             {
-                return new AccountResult(string.Empty, $"{result.Errors.FirstOrDefault()?.Description}");
+                return new Payload($"{result.Errors.FirstOrDefault()?.Description}");
             }
 
-            return new AccountResult(user.Email!, $"Password reset successfully. Please proceed to login.", true);
+            return new Payload($"Password reset successfully. Please proceed to login.", true);
         }
 
         /// <summary>
@@ -278,33 +283,33 @@ namespace ProfessionalProfiles.Graph
         /// <param name="repository"></param>
         /// <returns></returns>
         [Authorize]
-        public async Task<AccountResult> ChangePassword(ChangePasswordInput input,
+        public async Task<Payload> ChangePassword(ChangePasswordInput input,
             [Service] UserManager<Professional> userManager, [Service] IRepositoryManager repository)
         {
             if (input.CurrentPassword.IsNullOrEmpty() || input.NewPassword.IsNullOrEmpty())
             {
-                return new AccountResult(string.Empty, $"Invalid request");
+                return new Payload("Invalid request");
             }
 
             if (!input.NewPassword.Equals(input.ConfirmNewPassword))
             {
-                return new AccountResult(string.Empty, $"New Password and Comfirm New Password fields must match. Please try again");
+                return new Payload($"New Password and Comfirm New Password fields must match. Please try again");
             }
 
             var loggedInUserId = repository.User.GetLoggedInUserId();
             var user = await userManager.FindByIdAsync(loggedInUserId);
             if (user == null)
             {
-                return new AccountResult(string.Empty, $"Access denied");
+                return new Payload("Access denied");
             }
 
             var result = await userManager.ChangePasswordAsync(user, input.CurrentPassword, input.NewPassword);
             if (!result.Succeeded)
             {
-                return new AccountResult(string.Empty, $"{result.Errors.FirstOrDefault()?.Description}");
+                return new Payload($"{result.Errors.FirstOrDefault()?.Description}");
             }
 
-            return new AccountResult(user.Email!, $"Password changed successfully.", true);
+            return new Payload("Password changed successfully. Please login with the new password", true);
         }
         #endregion
 
@@ -317,21 +322,21 @@ namespace ProfessionalProfiles.Graph
         /// <param name="userManager"></param>
         /// <returns></returns>
         [Authorize]
-        public async Task<AccountResult> AddUserLocationAsync(UserLocationInput input,
+        public async Task<Payload> AddOrUpdateUserLocationAsync(UserLocationInput input,
             [Service] UserManager<Professional> userManager, IRepositoryManager repository)
         {
             var validator = new UserLocationInputValidator().Validate(input);
             if (!validator.IsValid)
             {
                 var message = validator.Errors.FirstOrDefault()?.ErrorMessage ?? "Invalid input! Please try again.";
-                return new AccountResult(string.Empty, message);
+                return new Payload(message);
             }
 
             var userId = repository.User.GetLoggedInUserId();
             var userValidationResult = await ValidateLoggedinUser(userId, userManager);
             if (!userValidationResult.IsSuccessful || userValidationResult.User == null)
             {
-                return new AccountResult("", userValidationResult.Message);
+                return new Payload(userValidationResult.Message);
             }
 
             var location = new ProfessionalLocation
@@ -346,9 +351,14 @@ namespace ProfessionalProfiles.Graph
                 Longitude = input.Longitude
             };
 
+            var action = "added";
+            if(userValidationResult.User.Location != null)
+            {
+                action = "updated";
+            }
             userValidationResult.User.Location = location;
             await userManager.UpdateAsync(userValidationResult.User);
-            return new AccountResult(userValidationResult.User.Email!, "Location successfully added", true);
+            return new Payload($"Location successfully {action}", true);
         }
 
         /// <summary>
@@ -359,20 +369,20 @@ namespace ProfessionalProfiles.Graph
         /// <param name="file"></param>
         /// <returns></returns>
         [Authorize]
-        public async Task<UploadResult> UploadProfilePhotoAsync([Service]UserManager<Professional> userManager, 
+        public async Task<Payload> UploadProfilePhotoAsync([Service]UserManager<Professional> userManager, 
             [Service]IRepositoryManager repository, [Service] IServiceManager service, IFile file)
         {
             var imageValidationResult = ValidateImageFile(file);
             if (!imageValidationResult.Payload.IsSuccessful)
             {
-                return new UploadResult(Guid.Empty, "", imageValidationResult.Payload.Message);
+                return new Payload(imageValidationResult.Payload.Message);
             }
 
             var userId = repository.User.GetLoggedInUserId();
             var userValidationResult = await ValidateLoggedinUser(userId, userManager);
             if (!userValidationResult.IsSuccessful || userValidationResult.User == null)
             {
-                return new UploadResult(Guid.Empty, "", userValidationResult.Message);
+                return new Payload(userValidationResult.Message);
             }
 
             var user = userValidationResult.User;
@@ -383,10 +393,10 @@ namespace ProfessionalProfiles.Graph
             {
                 user.ProfilePicture = uploadResult.Link;
                 await userManager.UpdateAsync(user);
-                return new UploadResult(user.Id, uploadResult.Link, "Profile picture successfully uploaded", true);
+                return new Payload("Profile picture successfully uploaded", true);
             }
 
-            return new UploadResult(user.Id, "", "Upload to server failed. Please try again.");
+            return new Payload("Upload to server failed. Please try again.");
         }
 
         /// <summary>
@@ -398,20 +408,20 @@ namespace ProfessionalProfiles.Graph
         /// <param name="file"></param>
         /// <returns></returns>
         [Authorize]
-        public async Task<UploadResult> UploadResumeAsync([Service] UserManager<Professional> userManager,
+        public async Task<Payload> UploadResumeAsync([Service] UserManager<Professional> userManager,
             [Service] IRepositoryManager repository, [Service] IServiceManager service, IFile file)
         {
             var imageValidationResult = ValidateDocFiles(file);
             if (!imageValidationResult.Payload.IsSuccessful)
             {
-                return new UploadResult(Guid.Empty, "", imageValidationResult.Payload.Message);
+                return new Payload(imageValidationResult.Payload.Message);
             }
 
             var userId = repository.User.GetLoggedInUserId();
             var userValidationResult = await ValidateLoggedinUser(userId, userManager);
             if (!userValidationResult.IsSuccessful || userValidationResult.User == null)
             {
-                return new UploadResult(Guid.Empty, string.Empty, userValidationResult.Message);
+                return new Payload(userValidationResult.Message);
             }
 
             var user = userValidationResult.User;
@@ -422,10 +432,51 @@ namespace ProfessionalProfiles.Graph
             {
                 user.ResumeLink = uploadResult.Link;
                 await userManager.UpdateAsync(user);
-                return new UploadResult(user.Id, uploadResult.Link, "File successfully uploaded", uploadResult.Success);
+                return new Payload("File successfully uploaded", uploadResult.Success);
             }
 
-            return new UploadResult(user.Id, string.Empty, "Upload to server failed. Please try again.");
+            return new Payload("Upload to server failed. Please try again.");
+        }
+
+        /// <summary>
+        /// Updates user's profile details
+        /// </summary>
+        /// <param name="input"></param>
+        /// <param name="userManager"></param>
+        /// <param name="repository"></param>
+        /// <returns></returns>
+        [Authorize]
+        public async Task<Payload> UpdateProfileDetailsAsync(ProfileDetailsInput input,
+            [Service] UserManager<Professional> userManager, [Service] IRepositoryManager repository)
+        {
+            var validator = new ProfileDetailsInputValidator().Validate(input);
+            if (!validator.IsValid)
+            {
+                var message = validator.Errors.FirstOrDefault()?.ErrorMessage ?? "Invalid input";
+                return new Payload(message);
+            }
+
+            var userId = repository.User.GetLoggedInUserId();
+            var userValidationResult = await ValidateLoggedinUser(userId, userManager);
+            if (!userValidationResult.IsSuccessful || userValidationResult.User == null)
+            {
+                return new Payload(userValidationResult.Message);
+            }
+
+            var user = userValidationResult.User;
+            if (user == null)
+            {
+                return new Payload("Profile not found");
+            }
+
+            user.FirstName = input.FirstName;
+            user.LastName = input.LastName;
+            user.OtherName = input.OtherName;
+            user.PhoneNumber = input.Phone;
+            user.Gender = input.Gender;
+
+            await userManager.UpdateAsync(user);
+            return new Payload("Profile details successfully updated", true);
         }
 
         #endregion
@@ -449,13 +500,13 @@ namespace ProfessionalProfiles.Graph
                 return new EducationResult(null, message);
             }
 
-            var loggedInUserId = repository.User.GetLoggedInUserId();
-            if (loggedInUserId.IsNullOrEmpty())
+            var loggedInUserId = repository.User.GetLoggedInUserId().ToGuid();
+            if (loggedInUserId.IsEmpty())
             {
                 return new EducationResult(null, "Access denied");
             }
 
-            var user = await userManager.FindByIdAsync(loggedInUserId);
+            var user = await userManager.FindByIdAsync(loggedInUserId.ToString());
             if (user == null)
             {
                 return new EducationResult(null, "User not found");
@@ -962,6 +1013,12 @@ namespace ProfessionalProfiles.Graph
                 return new Payload("You must enter one or more skills");
             }
 
+            var count = await repository.Skill.CountAllAsync(s => s.UserId.Equals(userId));
+            if(count >= MAXSKILLCOUNT || MAXSKILLCOUNT < (count + inputs.Count))
+            {
+                return new Payload("You can only add a maximum of 20 skills. Please remove some and try again later");
+            }
+
             var validator = new SkillInputValidator();
             foreach (var item in inputs)
             {
@@ -1003,8 +1060,8 @@ namespace ProfessionalProfiles.Graph
                 return new Payload("No record found for the provided id");
             }
 
-            var skillsToAdd = input.Map(skillToUpdate);
-            await repository.Skill.AddAsync(skillsToAdd);
+            input.Map(skillToUpdate);
+            await repository.Skill.EditAsync(s => s.Id.Equals(skillToUpdate.Id), skillToUpdate);
             return new Payload("Skill update successful", true);
         }
 

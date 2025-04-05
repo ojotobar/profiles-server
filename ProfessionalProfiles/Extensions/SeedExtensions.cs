@@ -2,9 +2,11 @@
 using CSharpTypes.Extensions.Object;
 using CSharpTypes.Extensions.String;
 using Microsoft.AspNetCore.Identity;
+using Mongo.Common.MongoDB;
 using ProfessionalProfiles.Data.Interface;
 using ProfessionalProfiles.Entities.Enums;
 using ProfessionalProfiles.Entities.Models;
+using ProfessionalProfiles.Graph.Account;
 
 namespace ProfessionalProfiles.Extensions
 {
@@ -15,6 +17,7 @@ namespace ProfessionalProfiles.Extensions
             using var scope = app.Services.CreateScope();
             await scope.DoSeedSystemRoles(logger);
             await scope.DoSeedSystemFaqs(logger);
+            await scope.DoSeedSystemUsers(logger);
         }
 
         private static async Task DoSeedSystemRoles(this IServiceScope scope, ILogger<Program> logger)
@@ -74,6 +77,53 @@ namespace ProfessionalProfiles.Extensions
                 }
 
                 logger.LogInformation("FAQs Seeding skipped.... FAQs already exist in the database.");
+            }
+        }
+
+        private static async Task DoSeedSystemUsers(this IServiceScope scope, ILogger<Program> logger)
+        {
+            var userManager = scope.ServiceProvider.GetRequiredService<UserManager<Professional>>();
+            if (userManager.IsNotNull())
+            {
+                var exists = userManager.Users.Any(u => u.Email != null && u.Email.Equals("blue.klikk@gmail.com"));
+                if (!exists)
+                {
+                    var roles = Enum.GetValues(typeof(ERoles));
+                    logger.LogInformation($"Starting user seeding...");
+                    var user = new Professional
+                    {
+                        FirstName = "User",
+                        LastName = "Admin",
+                        Email = "blue.klikk@gmail.com",
+                        PhoneNumber = "+2348035222858",
+                        UserName = "blue.klikk@gmail.com",
+                        Gender = EGender.Male,
+                        OtherName = "",
+                        Status = EStatus.Active,
+                        EmailConfirmed = true,
+                        IsPremium = true
+                    };
+
+                    var result = await userManager.CreateAsync(user, "P@33w0rd");
+                    if (!result.Succeeded)
+                    {
+                        logger.LogError(result.Errors.FirstOrDefault()?.Description ?? "Could not create user");
+                        return;
+                    }
+
+                    var roleResult = await userManager.AddToRoleAsync(user, ERoles.Admin.GetDescription());
+                    if (!roleResult.Succeeded)
+                    {
+                        await userManager.DeleteAsync(user);
+                        logger.LogError(roleResult.Errors.FirstOrDefault()?.Description ?? "Could not add user to role");
+                        return;
+                    }
+
+                    logger.LogInformation("User registration successful");
+                    return;
+                }
+
+                logger.LogInformation("Seeding skipped.... User already exist in the database.");
             }
         }
     }

@@ -45,4 +45,7 @@ namespace ProfessionalProfiles.Graph.Dto
             };
         }
     }
+
+    public record ProfileSummaryDto(long Education, long Experience, long Skills, long Projects, long Certifications, 
+        bool HasCareerSummary, int Progress, bool CanGenerateApiKey, string? ApiKey = "");
 }

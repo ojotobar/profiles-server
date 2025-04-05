@@ -11,5 +11,7 @@ namespace ProfessionalProfiles.Data.Interface
         IQueryable<Education> FindAsQueryable(Expression<Func<Education, bool>> expression);
         Task<Education?> FindOneAsync(Expression<Func<Education, bool>> expression);
         Task<List<Education>> FindAsync(Expression<Func<Education, bool>> expression);
+        Task<long> CountAllAsync(Expression<Func<Education, bool>> expression);
+        Task<bool> HasAnyAsync(Expression<Func<Education, bool>> expression);
     }
 }

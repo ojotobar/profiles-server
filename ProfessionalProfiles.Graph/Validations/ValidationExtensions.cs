@@ -8,7 +8,7 @@ namespace ProfessionalProfiles.Graph.Validations
     {
         public static bool IsAphaWithSomeChars(string str)
         {
-            return !string.IsNullOrWhiteSpace(str) && new Regex("^[a-zA-Z .+#/]*$").IsMatch(str.Trim());
+            return !string.IsNullOrWhiteSpace(str) && new Regex("^[a-zA-Z0-9 .+#/ ]*$").IsMatch(str.Trim());
         }
 
         public static bool IsAphaNumeric(string str)

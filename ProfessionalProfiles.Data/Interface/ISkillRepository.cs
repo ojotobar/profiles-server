@@ -7,6 +7,7 @@ namespace ProfessionalProfiles.Data.Interface
     {
         Task AddAsync(Skill skill);
         Task AddRangeAsync(List<Skill> skills);
+        Task<long> CountAllAsync(Expression<Func<Skill, bool>> expression);
         Task DeleteAsync(Expression<Func<Skill, bool>> expression);
         Task DeleteRangeAsync(Expression<Func<Skill, bool>> expression, CancellationToken token);
         Task EditAsync(Expression<Func<Skill, bool>> expression, Skill skill);

@@ -9,7 +9,7 @@ namespace ProfessionalProfiles.Entities.Models
     {
         public Guid Id { get; set; } = Guid.NewGuid();
         [Required]
-        public string UserId { get; set; } = string.Empty;
+        public Guid UserId { get; set; }
         [Required]
         public string InstitutionName { get; set; } = string.Empty;
         [Required]

@@ -63,7 +63,7 @@ namespace ProfessionalProfiles.Services.Implementations
             else
                 return body;
 
-            var msgBody = body.Replace("[[company_name]]", "Profession Profiles").
+            var msgBody = body.Replace("[[company_name]]", "Pro-files").
                 Replace("[[base_url]]", origin).
                 Replace("[[curr_year]]", DateTime.UtcNow.Year.ToString());
 
@@ -81,7 +81,7 @@ namespace ProfessionalProfiles.Services.Implementations
             else
                 return body;
 
-            var msgBody = body.Replace("[[company_name]]", "Profession Profiles")
+            var msgBody = body.Replace("[[company_name]]", "Pro-files")
                 .Replace("[[recipient_name]]", name)
                 .Replace("[[expiration_time]]", "1 hour")
                 .Replace("[[activation_code]]", otp);
@@ -100,7 +100,7 @@ namespace ProfessionalProfiles.Services.Implementations
             else
                 return body;
 
-            var msgBody = body.Replace("[[company_name]]", "Profession Profiles")
+            var msgBody = body.Replace("[[company_name]]", "Pro-files")
                 .Replace("[[recipient_name]]", name)
                 .Replace("[[expiration_time]]", "1 hour")
                 .Replace("[[activation_code]]", otp);

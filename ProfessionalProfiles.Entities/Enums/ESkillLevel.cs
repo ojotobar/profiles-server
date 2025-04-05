@@ -5,7 +5,7 @@ namespace ProfessionalProfiles.Entities.Enums
     public enum ESkillLevel
     {
         [Description("(Basic) – Limited practical experience.")]
-        FundamentalAwareness,
+        Beginner,
         [Description("(Limited Experience) – Can perform simple tasks with help.")]
         Novice,
         [Description("(Working Experience) – Can work independently.")]
