@@ -1,0 +1,20 @@
+name: Build And Push Professional Profiles Docker Image To Docker Hub
+on:
+  pull_request:
+    branches:
+      - development
+    types:
+      - closed
+jobs:
+  if_merged:
+    if: github.event.pull_request.merged
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+    - name: Build The Professional Profiles Docker Image
+      run: docker build -t ojotobar777/pro-files-server:v1 -f ProfessionalProfiles/Dockerfile .
+    - name: Push The Professional Profiles Image To Docker Hub
+      run: |
+        docker login -u blueclikk -p ${{ secrets.PROFILES_DEV_HUB_SECRET }}
+        docker push ojotobar777/pro-files-server:v1
