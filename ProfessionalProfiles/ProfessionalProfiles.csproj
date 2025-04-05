@@ -4,12 +4,15 @@
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>aa58d9bd-5954-4b1c-928f-ff6c3749b674</UserSecretsId>
+    <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="HotChocolate.AspNetCore" Version="14.3.0" />
     <PackageReference Include="HotChocolate.AspNetCore.Authorization" Version="14.3.0" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.11" />
+    <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.21.0" />
 	<PackageReference Include="Mongo.Common.Repo" Version="2.0.0" />
 	<PackageReference Include="Serilog.AspNetCore" Version="8.0.1" />
 	<PackageReference Include="Serilog.Exceptions" Version="8.4.0" />
