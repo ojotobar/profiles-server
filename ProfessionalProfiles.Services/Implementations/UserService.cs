@@ -131,7 +131,7 @@ namespace ProfessionalProfiles.Services.Implementations
             (
                 issuer: configuration["Authorization:Issuer"],
                 claims: claims,
-                expires: DateTime.UtcNow.AddDays(Convert.ToDouble(configuration["Authorization:Expires"])),
+                expires: DateTime.UtcNow.AddHours(Convert.ToDouble(configuration["Authorization:Expires"])),
                 signingCredentials: signingCredentials
             );
             return tokenOptions;
