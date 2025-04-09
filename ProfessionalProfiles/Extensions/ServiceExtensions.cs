@@ -30,7 +30,7 @@ namespace ProfessionalProfiles.Extensions
             services.AddCors(options =>
             {
                 options.AddPolicy("CorsPolicy", builder =>
-                    builder.WithOrigins("http://localhost:4200", "http://localhost:4300")
+                    builder.WithOrigins("https://pro-files-client.onrender.com")
                         .AllowCredentials()
                         .AllowAnyMethod()
                         .AllowAnyHeader());
