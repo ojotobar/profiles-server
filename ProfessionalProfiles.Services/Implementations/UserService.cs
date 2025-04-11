@@ -67,7 +67,7 @@ namespace ProfessionalProfiles.Services.Implementations
             var signinResult = await signInManager.PasswordSignInAsync(user, password, isPersistent: false, true);
             if (signinResult.Succeeded && user.EmailConfirmed && user.DeactivatedOn <= DateTime.MaxValue)
             {
-                if (user.Status == EStatus.Inactive && user.IsDeprecated) //For users that deactivated, reactivate and log them in
+                if (user.Status == EStatus.Inactive && !user.IsDeprecated) //For users that deactivated, reactivate and log them in
                 {
                     user.Status = EStatus.Active;
                     user.IsDeprecated = false;
@@ -141,7 +141,7 @@ namespace ProfessionalProfiles.Services.Implementations
         {
             if (!user.EmailConfirmed)
             {
-                //TODO: Resend account confirmation email to the user.
+                response.EmailNotConfirmed = true;
                 response.Message = "Email not confirmed. Please confirm your account before attempting to login. Confirmation link sent to your email.";
             }
 

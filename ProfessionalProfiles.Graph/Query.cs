@@ -103,12 +103,12 @@ namespace ProfessionalProfiles.Graph
                 return null;
             }
 
-            var educations = await repository.Education.CountAllAsync(e => e.UserId.Equals(userId));
-            var experiences = await repository.WorkExperience.CountAllAsync(we => we.UserId.Equals(userId));
-            var skills = await repository.Skill.CountAllAsync(s => s.UserId.Equals(userId));
-            var projects = await repository.Project.CountAllAsync(p => p.UserId.Equals(userId));
-            var certs = await repository.Certification.CountAllAsync(c => c.UserId.Equals(userId));
-            var hasSummary = await repository.Summary.HasAsync(cs => cs.UserId.Equals(userId));
+            var educations = await repository.Education.CountAllAsync(e => e.UserId.Equals(userId) && !e.IsDeprecated);
+            var experiences = await repository.WorkExperience.CountAllAsync(we => we.UserId.Equals(userId) && !we.IsDeprecated);
+            var skills = await repository.Skill.CountAllAsync(s => s.UserId.Equals(userId) && !s.IsDeprecated);
+            var projects = await repository.Project.CountAllAsync(p => p.UserId.Equals(userId) && !p.IsDeprecated);
+            var certs = await repository.Certification.CountAllAsync(c => c.UserId.Equals(userId) && !c.IsDeprecated);
+            var hasSummary = await repository.Summary.HasAsync(cs => cs.UserId.Equals(userId) && !cs.IsDeprecated);
 
             var canGenerate = await repository.CanGenerateApiKey(user.EmailConfirmed, 
                 user.Location != null, user.ProfilePicture != null, user.ResumeLink != null);

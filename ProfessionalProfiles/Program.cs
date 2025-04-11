@@ -32,6 +32,11 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.UseWebSockets();
 app.MapGraphQL("/profilesql");
-app.MapGet("/", () => "Welcome!");
+//app.MapGet("/", () => "Welcome!");
+app.MapGet("/", async context =>
+{
+    context.Response.ContentType = "text/html";
+    await context.Response.SendFileAsync("wwwroot/ProfilesQL.html");
+});
 
 app.Run();

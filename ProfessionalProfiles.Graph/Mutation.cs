@@ -25,7 +25,7 @@ namespace ProfessionalProfiles.Graph
 {
     public class Mutation
     {
-        private const long MAXIMAGESIZE = 524228;//512kb
+        private const long MAXIMAGESIZE = 1572684;//1.5mb
         private const long MAXSKILLCOUNT = 20;
         private readonly List<string> ALLOWEDIMAGEFORMATS = [".png", ".jpg", ".jpeg"];
         private readonly List<string> ALLOWEDDOCFORMATS = [".pdf", ".docx", ".doc"];
@@ -38,19 +38,19 @@ namespace ProfessionalProfiles.Graph
         /// <param name="repository"></param>
         /// <param name="userManager"></param>
         /// <returns></returns>
-        public async Task<AccountResult> RegisterUserAsync(RegisterUserInput input,
+        public async Task<Payload> RegisterUserAsync(RegisterUserInput input,
             [Service] UserManager<Professional> userManager, [GlobalState] string? origin,
             [Service] IRepositoryManager repository, [Service] IServiceManager service)
         {
             if (!input.MatchPassword)
             {
-                return new AccountResult(string.Empty, "Password and Confirm Password fields must match");
+                return new Payload("Password and Confirm Password fields must match");
             }
 
             var user = await userManager.FindByEmailAsync(input.EmailAddress);
             if (user != null)
             {
-                return new AccountResult(string.Empty, "A user already exists with this email");
+                return new Payload("A user already exists with this email");
             }
 
             user = new Professional
@@ -67,7 +67,7 @@ namespace ProfessionalProfiles.Graph
             var result = await userManager.CreateAsync(user, input.Password);
             if (!result.Succeeded)
             {
-                return new AccountResult(string.Empty, $"Registration failed. {result.Errors.FirstOrDefault()?.Description}");
+                return new Payload($"Registration failed. {result.Errors.FirstOrDefault()?.Description}");
             }
 
             var loggedInUserRoles = await repository.User.GetUserRoles();
@@ -78,16 +78,16 @@ namespace ProfessionalProfiles.Graph
             if (!roleResult.Succeeded)
             {
                 await userManager.DeleteAsync(user);
-                return new AccountResult(string.Empty, $"Registration failed. {roleResult.Errors.FirstOrDefault()?.Description}");
+                return new Payload($"Registration failed. {roleResult.Errors.FirstOrDefault()?.Description}");
             }
 
             var mailSent = await service.Email.SendAccountConfirmationEmail(user, origin!);
             if (!mailSent)
             {
                 await userManager.DeleteAsync(user);
-                return new AccountResult(string.Empty, $"Registration failed. Please try again.");
+                return new Payload($"Registration failed. Please try again.");
             }
-            return new AccountResult(user.Email, "User registration successful. Please verify your account.", true);
+            return new Payload("User registration successful. Please verify your account.", true);
         }
 
         /// <summary>
@@ -97,18 +97,18 @@ namespace ProfessionalProfiles.Graph
         /// <param name="userManager"></param>
         /// <param name="repository"></param>
         /// <returns></returns>
-        public async Task<AccountResult> VerifyAccountAsync(VerifyAccountInput input,
+        public async Task<Payload> VerifyAccountAsync(VerifyAccountInput input,
             [Service] UserManager<Professional> userManager, [Service] IRepositoryManager repository)
         {
             if (input.Email.IsNullOrEmpty() || input.OTP.IsNullOrEmpty())
             {
-                return new AccountResult(string.Empty, $"Invalid email or verification code. Please try again.");
+                return new Payload($"Invalid email or verification code. Please try again.");
             }
 
             var user = await userManager.FindByEmailAsync(input.Email);
             if (user == null)
             {
-                return new AccountResult(string.Empty, $"No user found with the email: {input.Email}");
+                return new Payload($"No user found with the email: {input.Email}");
             }
 
             var code = await repository.OneTimePass
@@ -119,7 +119,7 @@ namespace ProfessionalProfiles.Graph
 
             if (code.IsNull())
             {
-                return new AccountResult(string.Empty, $"Invalid or expired verification code. Please generate a new one to continue.");
+                return new Payload($"Invalid or expired verification code. Please generate a new one to continue.");
             }
 
             //Update user
@@ -133,7 +133,7 @@ namespace ProfessionalProfiles.Graph
             code.Used = true;
             await repository.OneTimePass.EditAsync(c => c.Id.Equals(code.Id), code);
 
-            return new AccountResult(user?.Email!, "Account successfully verified. Please proceed to log in.", true);
+            return new Payload("Account successfully verified. Please proceed to log in.", true);
         }
 
         /// <summary>
@@ -144,7 +144,8 @@ namespace ProfessionalProfiles.Graph
         /// <param name="userManager"></param>
         /// <returns></returns>
         public async Task<LoginResult> LoginUserAsync(LoginInput input,
-            [Service] IServiceManager service, [Service] UserManager<Professional> userManager)
+            [Service] IServiceManager service, [Service] UserManager<Professional> userManager,
+            [GlobalState] string? origin)
         {
             if (input.IsNull() || input.Email.IsNullOrEmpty() || input.Password.IsNullOrEmpty())
             {
@@ -152,7 +153,7 @@ namespace ProfessionalProfiles.Graph
             }
 
             var user = await userManager.FindByEmailAsync(input.Email);
-            if (user.IsNull())
+            if (user == null)
             {
                 return new LoginResult("", input.Email, $"No user found with the email: {input.Email}");
             }
@@ -160,7 +161,12 @@ namespace ProfessionalProfiles.Graph
             var validate = await service.User.Validate(input.Email, input.Password);
             if (!validate.Successful)
             {
-                return new LoginResult("", input.Email, validate.Message!);
+                if (validate.EmailNotConfirmed)
+                {
+                    await service.Email.SendAccountConfirmationEmail(user, origin ?? "");
+                }
+
+                return new LoginResult("", input.Email, validate.Message!, validate.EmailNotConfirmed);
             }
 
             var tokenDto = await service.User.CreateAccessToken(validate, user!);
@@ -176,19 +182,19 @@ namespace ProfessionalProfiles.Graph
         /// <param name="origin"></param>
         /// <param name="service"></param>
         /// <returns></returns>
-        public async Task<AccountResult> ResendCodeAsync(ResendCodeInput input,
+        public async Task<Payload> ResendCodeAsync(ResendCodeInput input,
             [Service] UserManager<Professional> userManager, [GlobalState] string? origin,
             [Service] IServiceManager service)
         {
             var user = await userManager.FindByEmailAsync(input.Email);
             if (user == null)
             {
-                return new AccountResult(string.Empty, "No user found with this email");
+                return new Payload("No user found with this email");
             }
 
             if (user.EmailConfirmed && input.CodeType == EOtpType.Verification)
             {
-                return new AccountResult(string.Empty, "Account already verified. Please login");
+                return new Payload("Account already verified. Please login");
             }
 
             var mailSent = input.CodeType == EOtpType.Verification ?
@@ -200,9 +206,9 @@ namespace ProfessionalProfiles.Graph
                 {
                     await userManager.DeleteAsync(user);
                 }
-                return new AccountResult(string.Empty, $"Could not resend {input.CodeType.GetDescription()} code.");
+                return new Payload($"Could not resend {input.CodeType.GetDescription()} code.");
             }
-            return new AccountResult(user.Email!, $"{input.CodeType.GetDescription()} successfully sent. Please check your email", true);
+            return new Payload($"{input.CodeType.GetDescription()} successfully sent. Please check your email", true);
         }
 
         /// <summary>
@@ -490,31 +496,31 @@ namespace ProfessionalProfiles.Graph
         /// <param name="userManager"></param>
         /// <returns></returns>
         [Authorize]
-        public async Task<EducationResult> AddEducationAsync(EducationInput input,
+        public async Task<Payload> AddEducationAsync(EducationInput input,
             IRepositoryManager repository, [Service] UserManager<Professional> userManager)
         {
             var validator = new EducationInputValidator().Validate(input);
             if (!validator.IsValid)
             {
                 var message = validator.Errors.FirstOrDefault()?.ErrorMessage ?? "Invalid input";
-                return new EducationResult(null, message);
+                return new Payload(message);
             }
 
             var loggedInUserId = repository.User.GetLoggedInUserId().ToGuid();
             if (loggedInUserId.IsEmpty())
             {
-                return new EducationResult(null, "Access denied");
+                return new Payload("Access denied");
             }
 
             var user = await userManager.FindByIdAsync(loggedInUserId.ToString());
             if (user == null)
             {
-                return new EducationResult(null, "User not found");
+                return new Payload("User not found");
             }
 
             var education = EducationDto.CreateMap(loggedInUserId, input);
             await repository.Education.AddAsync(education);
-            return new EducationResult(education, "Education record added successfully", true);
+            return new Payload("Education record added successfully", true);
         }
 
         /// <summary>
@@ -525,25 +531,25 @@ namespace ProfessionalProfiles.Graph
         /// <param name="userManager"></param>
         /// <returns></returns>
         [Authorize]
-        public async Task<EducationResult> UpdateEducationAsync(Guid id, EducationInput input,
+        public async Task<Payload> UpdateEducationAsync(Guid id, EducationInput input,
             IRepositoryManager repository, [Service] UserManager<Professional> userManager)
         {
             var validator = new EducationInputValidator().Validate(input);
             if (!validator.IsValid)
             {
                 var message = validator.Errors.FirstOrDefault()?.ErrorMessage ?? "Invalid input";
-                return new EducationResult(null, message);
+                return new Payload(message);
             }
 
             var existingRecord = await repository.Education.FindOneAsync(e => e.Id.Equals(id) && !e.IsDeprecated);
             if (existingRecord == null)
             {
-                return new EducationResult(null, "Record not found");
+                return new Payload("Record not found");
             }
 
             existingRecord = EducationDto.CreateMap(existingRecord, input);
             await repository.Education.EditAsync(e => e.Id.Equals(existingRecord.Id), existingRecord);
-            return new EducationResult(existingRecord, "Education record updated successfully", true);
+            return new Payload("Education record updated successfully", true);
         }
 
         /// <summary>
@@ -553,18 +559,18 @@ namespace ProfessionalProfiles.Graph
         /// <param name="repository"></param>
         /// <returns></returns>
         [Authorize]
-        public async Task<EducationResult> DeleteEducationAsync(Guid id, [Service] IRepositoryManager repository)
+        public async Task<Payload> DeleteEducationAsync(Guid id, [Service] IRepositoryManager repository)
         {
             var existingRecord = await repository.Education.FindOneAsync(e => !e.IsDeprecated && e.Id.Equals(id));
             if (existingRecord == null)
             {
-                return new EducationResult(null, "Record not found");
+                return new Payload("Record not found");
             }
 
             existingRecord.IsDeprecated = true;
             existingRecord.UpdatedOn = DateTime.UtcNow;
             await repository.Education.EditAsync(e => e.Id.Equals(existingRecord.Id), existingRecord);
-            return new EducationResult(null, "Education record deleted successfully", true);
+            return new Payload("Education record deleted successfully", true);
         }
         #endregion
 
@@ -576,7 +582,7 @@ namespace ProfessionalProfiles.Graph
         /// <param name="repository"></param>
         /// <returns></returns>
         [Authorize]
-        public async Task<CertificationsPayload> AddCertificationsAsync(List<CertificationInput> inputs,
+        public async Task<Payload> AddCertificationsAsync(List<CertificationInput> inputs,
             IRepositoryManager repository)
         {
             foreach (var input in inputs)
@@ -585,19 +591,19 @@ namespace ProfessionalProfiles.Graph
                 if (!validationResult.IsValid)
                 {
                     var message = validationResult.Errors.FirstOrDefault()?.ErrorMessage ?? "Invalid input";
-                    return new CertificationsPayload([], message);
+                    return new Payload(message);
                 }
             }
 
             var userId = repository.User.GetLoggedInUserId().ToGuid();
             if (userId.IsEmpty())
             {
-                return new CertificationsPayload([], "Permission denied!!!");
+                return new Payload("Permission denied!!!");
             }
 
             var certifications = inputs.Initialize(userId);
             await repository.Certification.AddRangeAsync(certifications);
-            return new CertificationsPayload(certifications, "Certification added successfully", true);
+            return new Payload("Certification added successfully", true);
         }
 
         /// <summary>
@@ -608,37 +614,37 @@ namespace ProfessionalProfiles.Graph
         /// <param name="repository"></param>
         /// <returns></returns>
         [Authorize]
-        public async Task<CertificationPayload> UpdateCertificationAsync(Guid id, CertificationInput input,
+        public async Task<Payload> UpdateCertificationAsync(Guid id, CertificationInput input,
             IRepositoryManager repository)
         {
             var validationResult = new CertificationInputValidator().Validate(input);
             if (!validationResult.IsValid)
             {
                 var message = validationResult.Errors.FirstOrDefault()?.ErrorMessage ?? "Invalid input";
-                return new CertificationPayload(null, message);
+                return new Payload(message);
             }
 
             var userId = repository.User.GetLoggedInUserId().ToGuid();
             if (userId.IsEmpty())
             {
-                return new CertificationPayload(null, "Permission denied!!!");
+                return new Payload("Permission denied!!!");
             }
 
             var certification = await repository.Certification.FindAsync(c => c.Id.Equals(id));
             if (certification.IsNull())
             {
-                return new CertificationPayload(null, "Record not found");
+                return new Payload("Record not found");
             }
 
             var loggedInUserRole = await repository.User.GetUserRoles();
             if (!loggedInUserRole.IsNotNullOrEmpty() || (!loggedInUserRole.Contains(ERoles.Admin) && !userId.Equals(certification!.UserId)))
             {
-                return new CertificationPayload(null, "You're not authorized to perform this action!");
+                return new Payload("You're not authorized to perform this action!");
             }
 
             certification = input.Map(certification!);
             await repository.Certification.EditAsync(c => c.Id.Equals(id), certification);
-            return new CertificationPayload(certification, "Certification updated successfully", true);
+            return new Payload("Certification updated successfully", true);
         }
 
         /// <summary>
@@ -648,28 +654,28 @@ namespace ProfessionalProfiles.Graph
         /// <param name="repository"></param>
         /// <returns></returns>
         [Authorize]
-        public async Task<CertificationPayload> DeleteCertificationAsync(Guid id, IRepositoryManager repository)
+        public async Task<Payload> DeleteCertificationAsync(Guid id, IRepositoryManager repository)
         {
             var userId = repository.User.GetLoggedInUserId().ToGuid();
             if (userId.IsEmpty())
             {
-                return new CertificationPayload(null, "Permission denied!!!");
+                return new Payload("Permission denied!!!");
             }
 
             var certification = await repository.Certification.FindAsync(c => c.Id.Equals(id));
             if (certification.IsNull())
             {
-                return new CertificationPayload(null, "Record not found");
+                return new Payload("Record not found");
             }
 
             var loggedInUserRole = await repository.User.GetUserRoles();
             if (!loggedInUserRole.IsNotNullOrEmpty() || (!loggedInUserRole.Contains(ERoles.Admin) && !userId.Equals(certification!.UserId)))
             {
-                return new CertificationPayload(null, "You're not authorized to perform this action!");
+                return new Payload("You're not authorized to perform this action!");
             }
 
             await repository.Certification.DeleteAsync(c => c.Id.Equals(id));
-            return new CertificationPayload(null, "Certification deleted successfully", true);
+            return new Payload("Certification deleted successfully", true);
         }
         #endregion
 
@@ -790,7 +796,7 @@ namespace ProfessionalProfiles.Graph
         /// <param name="repository"></param>
         /// <returns></returns>
         [Authorize]
-        public async Task<ProjectsPayload> AddProjectsAsync(List<ProjectInput> inputs,
+        public async Task<Payload> AddProjectsAsync(List<ProjectInput> inputs,
             IRepositoryManager repository)
         {
             foreach (var input in inputs)
@@ -799,19 +805,19 @@ namespace ProfessionalProfiles.Graph
                 if (!validationResult.IsValid)
                 {
                     var message = validationResult.Errors.FirstOrDefault()?.ErrorMessage ?? "Invalid input";
-                    return new ProjectsPayload([], message);
+                    return new Payload(message);
                 }
             }
 
             var userId = repository.User.GetLoggedInUserId().ToGuid();
             if (userId.IsEmpty())
             {
-                return new ProjectsPayload([], "Permission denied!!!");
+                return new Payload("Permission denied!!!");
             }
 
             var projects = inputs.Initialize(userId);
             await repository.Project.AddRangeAsync(projects);
-            return new ProjectsPayload(projects, "Projects added successfully", true);
+            return new Payload("Projects added successfully", true);
         }
 
         /// <summary>
@@ -822,37 +828,37 @@ namespace ProfessionalProfiles.Graph
         /// <param name="repository"></param>
         /// <returns></returns>
         [Authorize]
-        public async Task<ProjectPayload> UpdateProjectAsync(Guid id, ProjectInput input,
+        public async Task<Payload> UpdateProjectAsync(Guid id, ProjectInput input,
             IRepositoryManager repository)
         {
             var validationResult = new ProjectInputValidator().Validate(input);
             if (!validationResult.IsValid)
             {
                 var message = validationResult.Errors.FirstOrDefault()?.ErrorMessage ?? "Invalid input";
-                return new ProjectPayload(null, message);
+                return new Payload(message);
             }
 
             var userId = repository.User.GetLoggedInUserId().ToGuid();
             if (userId.IsEmpty())
             {
-                return new ProjectPayload(null, "Permission denied!!!");
+                return new Payload("Permission denied!!!");
             }
 
             var project = await repository.Project.FindAsync(p => p.UserId.Equals(userId) && p.Id.Equals(id));
             if (project.IsNull())
             {
-                return new ProjectPayload(null, "Record not found");
+                return new Payload("Record not found");
             }
 
             var loggedInUserRole = await repository.User.GetUserRoles();
             if (!loggedInUserRole.IsNotNullOrEmpty() || (!loggedInUserRole.Contains(ERoles.Admin) && !userId.Equals(project!.UserId)))
             {
-                return new ProjectPayload(null, "You're not authorized to perform this action!");
+                return new Payload("You're not authorized to perform this action!");
             }
 
             project = input.Map(project!);
             await repository.Project.EditAsync(c => c.Id.Equals(id), project);
-            return new ProjectPayload(project, "Project updated successfully", true);
+            return new Payload("Project updated successfully", true);
         }
 
         /// <summary>
@@ -862,28 +868,28 @@ namespace ProfessionalProfiles.Graph
         /// <param name="repository"></param>
         /// <returns></returns>
         [Authorize]
-        public async Task<ProjectPayload> DeleteProjectAsync(Guid id, IRepositoryManager repository)
+        public async Task<Payload> DeleteProjectAsync(Guid id, IRepositoryManager repository)
         {
             var userId = repository.User.GetLoggedInUserId().ToGuid();
             if (userId.IsEmpty())
             {
-                return new ProjectPayload(null, "Permission denied!!!");
+                return new Payload("Permission denied!!!");
             }
 
             var certification = await repository.Project.FindAsync(c => c.Id.Equals(id));
             if (certification.IsNull())
             {
-                return new ProjectPayload(null, "Record not found");
+                return new Payload("Record not found");
             }
 
             var loggedInUserRole = await repository.User.GetUserRoles();
             if (!loggedInUserRole.IsNotNullOrEmpty() || (!loggedInUserRole.Contains(ERoles.Admin) && !userId.Equals(certification!.UserId)))
             {
-                return new ProjectPayload(null, "You're not authorized to perform this action!");
+                return new Payload("You're not authorized to perform this action!");
             }
 
             await repository.Project.DeleteAsync(c => c.Id.Equals(id));
-            return new ProjectPayload(null, "Project deleted successfully", true);
+            return new Payload("Project deleted successfully", true);
         }
         #endregion
 
@@ -895,13 +901,13 @@ namespace ProfessionalProfiles.Graph
         /// <param name="repository"></param>
         /// <returns></returns>
         [Authorize]
-        public async Task<ExperiencesPayload> AddExperiencesAsync(List<ExperienceInput> inputs,
+        public async Task<Payload> AddExperiencesAsync(List<ExperienceInput> inputs,
             IRepositoryManager repository)
         {
             var userId = repository.User.GetLoggedInUserId().ToGuid();
             if (userId.IsEmpty())
             {
-                return new ExperiencesPayload([], "Permission denied!!!");
+                return new Payload("Permission denied!!!");
             }
 
             foreach (var input in inputs)
@@ -910,13 +916,13 @@ namespace ProfessionalProfiles.Graph
                 if (!validationResult.IsValid)
                 {
                     var message = validationResult.Errors.FirstOrDefault()?.ErrorMessage ?? "Invalid input";
-                    return new ExperiencesPayload([], message);
+                    return new Payload(message);
                 }
             }
 
             var experiences = inputs.Initialize(userId);
             await repository.WorkExperience.AddRangeAsync(experiences);
-            return new ExperiencesPayload(experiences, "Experiences added successfully", true);
+            return new Payload("Experiences added successfully", true);
         }
 
         /// <summary>
@@ -927,37 +933,37 @@ namespace ProfessionalProfiles.Graph
         /// <param name="repository"></param>
         /// <returns></returns>
         [Authorize]
-        public async Task<ExperiencePayload> UpdateExperienceAsync(Guid id, ExperienceInput input,
+        public async Task<Payload> UpdateExperienceAsync(Guid id, ExperienceInput input,
             IRepositoryManager repository)
         {
             var validationResult = new ExperienceInputValidator().Validate(input);
             if (!validationResult.IsValid)
             {
                 var message = validationResult.Errors.FirstOrDefault()?.ErrorMessage ?? "Invalid input";
-                return new ExperiencePayload(null, message);
+                return new Payload(message);
             }
 
             var userId = repository.User.GetLoggedInUserId().ToGuid();
             if (userId.IsEmpty())
             {
-                return new ExperiencePayload(null, "Permission denied!!!");
+                return new Payload("Permission denied!!!");
             }
 
             var experience = await repository.WorkExperience.FindAsync(p => p.UserId.Equals(userId) && p.Id.Equals(id));
             if (experience.IsNull())
             {
-                return new ExperiencePayload(null, "Record not found");
+                return new Payload("Record not found");
             }
 
             var loggedInUserRole = await repository.User.GetUserRoles();
             if (!loggedInUserRole.IsNotNullOrEmpty() || (!loggedInUserRole.Contains(ERoles.Admin) && !userId.Equals(experience!.UserId)))
             {
-                return new ExperiencePayload(null, "You're not authorized to perform this action!");
+                return new Payload("You're not authorized to perform this action!");
             }
 
             experience = input.Map(experience!);
             await repository.WorkExperience.EditAsync(c => c.Id.Equals(id), experience);
-            return new ExperiencePayload(experience, "Experience updated successfully", true);
+            return new Payload("Experience updated successfully", true);
         }
 
         /// <summary>
@@ -967,28 +973,28 @@ namespace ProfessionalProfiles.Graph
         /// <param name="repository"></param>
         /// <returns></returns>
         [Authorize]
-        public async Task<ExperiencePayload> DeleteExperienceAsync(Guid id, IRepositoryManager repository)
+        public async Task<Payload> DeleteExperienceAsync(Guid id, IRepositoryManager repository)
         {
             var userId = repository.User.GetLoggedInUserId().ToGuid();
             if (userId.IsEmpty())
             {
-                return new ExperiencePayload(null, "Permission denied!!!");
+                return new Payload("Permission denied!!!");
             }
 
             var experience = await repository.WorkExperience.FindAsync(c => c.Id.Equals(id));
             if (experience.IsNull())
             {
-                return new ExperiencePayload(null, "Record not found");
+                return new Payload("Record not found");
             }
 
             var loggedInUserRole = await repository.User.GetUserRoles();
             if (!loggedInUserRole.IsNotNullOrEmpty() || (!loggedInUserRole.Contains(ERoles.Admin) && !userId.Equals(experience!.UserId)))
             {
-                return new ExperiencePayload(null, "You're not authorized to perform this action!");
+                return new Payload("You're not authorized to perform this action!");
             }
 
             await repository.WorkExperience.DeleteAsync(c => c.Id.Equals(id));
-            return new ExperiencePayload(null, "Experience deleted successfully", true);
+            return new Payload("Experience deleted successfully", true);
         }
         #endregion
 
