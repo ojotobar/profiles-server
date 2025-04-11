@@ -70,7 +70,7 @@ jobs:
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         run: |
-          DEPLOYED_VERSION=${{ steps.get_version.outputs.VERSION }}
+          DEPLOYED_VERSION=${{ steps.get_latest_tag.outputs.tag }}
           curl -X POST -H 'Content-type: application/json' --data "{
             \"text\": \"🚀 *Pro-files Server Deployed!*\nVersion: \`$DEPLOYED_VERSION\`\nTag: \`live\`\nEnvironment: *Production*\nRender triggered successfully.\"
           }" $SLACK_WEBHOOK_URL
