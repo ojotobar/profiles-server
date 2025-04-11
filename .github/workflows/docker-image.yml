@@ -8,8 +8,22 @@ on:
       - closed
 
 jobs:
+  check_merge_condition:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fail if not merged from development
+        run: |
+          echo "Merged: ${{ github.event.pull_request.merged }}"
+          echo "Head ref: ${{ github.event.pull_request.head.ref }}"
+          
+          if [[ "${{ github.event.pull_request.merged }}" != "true" || "${{ github.event.pull_request.head.ref }}" != "development" ]]; then
+            echo "❌ PR must be merged from 'development' into 'master'"
+            exit 1
+          fi
+        shell: bash
+
   if_merged:
-    if: github.event.pull_request.merged && github.event.pull_request.head.ref == 'development'
+    needs: check_merge_condition
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
