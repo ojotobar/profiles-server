@@ -64,3 +64,13 @@ jobs:
       - name: Trigger Automatic Deploy on Render
         run: |
           curl -X POST ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+
+            
+      - name: Send Slack Notification
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          DEPLOYED_VERSION=${{ steps.get_version.outputs.VERSION }}
+          curl -X POST -H 'Content-type: application/json' --data "{
+            \"text\": \"🚀 *Pro-files Server Deployed!*\nVersion: \`$DEPLOYED_VERSION\`\nTag: \`live\`\nEnvironment: *Production*\nRender triggered successfully.\"
+          }" $SLACK_WEBHOOK_URL
