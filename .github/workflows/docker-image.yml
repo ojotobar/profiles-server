@@ -17,7 +17,7 @@ jobs:
           echo "Head ref: ${{ github.event.pull_request.head.ref }}"
           
           if [[ "${{ github.event.pull_request.merged }}" != "true" || "${{ github.event.pull_request.head.ref }}" != "development" ]]; then
-            echo "❌ PR must be merged from 'development' into 'master'"
+            echo "PR must be merged from 'development' into 'master'"
             exit 1
           fi
         shell: bash
