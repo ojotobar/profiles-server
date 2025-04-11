@@ -1,4 +1,5 @@
 using DRY.MailJetClient.Library.Extensions;
+using GraphQL.Server.Ui.Voyager;
 using Mongo.Common.MongoDB;
 using ProfessionalProfiles.Configurations;
 using ProfessionalProfiles.Extensions;
@@ -32,6 +33,11 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.UseWebSockets();
 app.MapGraphQL("/profilesql");
-app.MapGet("/", () => "Welcome!");
+app.UseGraphQLVoyager();
+app.MapGet("/", async context =>
+{
+    context.Response.ContentType = "text/html";
+    await context.Response.SendFileAsync("wwwroot/ProfilesQL.html");
+});
 
 app.Run();
