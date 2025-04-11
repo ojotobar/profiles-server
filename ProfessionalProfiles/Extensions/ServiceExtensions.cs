@@ -30,8 +30,7 @@ namespace ProfessionalProfiles.Extensions
             services.AddCors(options =>
             {
                 options.AddPolicy("CorsPolicy", builder =>
-                    builder.WithOrigins("https://pro-files-client.onrender.com")
-                        .AllowCredentials()
+                    builder.AllowAnyOrigin()
                         .AllowAnyMethod()
                         .AllowAnyHeader());
             });
