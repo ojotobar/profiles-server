@@ -166,7 +166,7 @@ namespace ProfessionalProfiles.Graph
                     await service.Email.SendAccountConfirmationEmail(user, origin ?? "");
                 }
 
-                return new LoginResult("", input.Email, validate.Message!, validate.EmailNotConfirmed);
+                return new LoginResult("", input.Email, validate.Message!, EmailNotConfirmed: validate.EmailNotConfirmed);
             }
 
             var tokenDto = await service.User.CreateAccessToken(validate, user!);

@@ -142,14 +142,13 @@ namespace ProfessionalProfiles.Services.Implementations
             if (!user.EmailConfirmed)
             {
                 response.EmailNotConfirmed = true;
-                response.Message = "Email not confirmed. Please confirm your account before attempting to login. Confirmation link sent to your email.";
+                response.Message = "Email not confirmed. Please confirm your account before attempting to login. Confirmation code sent to your email.";
             }
 
-            else if (user.Status == EStatus.Inactive && !user.IsDeprecated)
+            else if (user.Status == EStatus.Inactive && user.IsDeprecated)
             {
                 response.Message = "Access denied. Account not deactivated. Please submit a support ticket to reactivate your account.";
             }
-
 
             else
             {

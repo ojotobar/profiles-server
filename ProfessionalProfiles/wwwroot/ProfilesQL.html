@@ -1,26 +1,66 @@
 ﻿<!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>Pro-files GraphQL</title>
         <style>
+            :root {
+                --bg: #ffffff;
+                --text: #1e3c72;
+                --accent: #2a5298;
+            }
+
+            [data-theme="dark"] {
+                --bg: #1e1e2f;
+                --text: #ffffff;
+                --accent: #61dafb;
+            }
+
             body {
+                margin: 3rem 0 0 0;
+                padding: 0;
+                background: var(--bg);
+                color: var(--text);
                 font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-                background: linear-gradient(to right, #1e3c72, #2a5298);
-                color: #ffffff;
                 display: flex;
                 flex-direction: column;
                 align-items: center;
                 justify-content: center;
-                height: 100vh;
-                margin: 0;
                 text-align: center;
+                min-height: 100vh;
+                transition: background 0.4s, color 0.4s;
+                animation: fadeIn 1s ease-in;
+            }
+
+            @keyframes fadeIn {
+                from {
+                    opacity: 0;
+                    transform: translateY(20px);
+                }
+
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+
+            .logo {
+                width: 80px;
+                height: 80px;
+                margin-bottom: 1rem;
+                background: var(--accent);
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 2rem;
+                color: white;
             }
 
             h1 {
-                font-size: 3rem;
-                margin-bottom: 1rem;
+                font-size: 2.5rem;
+                margin: 0.5rem 0;
             }
 
             p {
@@ -28,26 +68,100 @@
                 margin-bottom: 2rem;
             }
 
-            a {
+            .buttons a {
+                display: inline-block;
+                margin: 0.5rem;
                 padding: 0.75rem 1.5rem;
-                background-color: #ffffff;
-                color: #1e3c72;
                 border-radius: 8px;
                 text-decoration: none;
                 font-weight: bold;
+                background: var(--accent);
+                color: white;
                 transition: background-color 0.3s;
             }
 
-                a:hover {
-                    background-color: #ddd;
+                .buttons a:hover {
+                    background-color: #4a7bbd;
                 }
+
+            pre {
+                background: rgba(0,0,0,0.1);
+                padding: 1rem;
+                border-radius: 8px;
+                text-align: left;
+                max-width: 600px;
+                margin: 1rem auto;
+                font-size: 0.95rem;
+                overflow-x: auto;
+            }
+
+            .toggle-theme {
+                position: absolute;
+                top: 1rem;
+                right: 1rem;
+                background: none;
+                border: 2px solid var(--accent);
+                padding: 0.4rem 0.8rem;
+                border-radius: 20px;
+                cursor: pointer;
+                color: var(--accent);
+                font-weight: bold;
+            }
         </style>
     </head>
     <body>
-        <h1>🚀 Pro-files GraphQL</h1>
-        <p>Welcome to the GraphQL API for the Pro-files platform.</p>
-        <div>
-            <a href="/profilesql">Browse Schema</a>
+        <button class="toggle-theme" onclick="toggleTheme()">Toggle Theme</button>
+        <div class="logo">
+            <!-- Save as wwwroot/logo.svg -->
+            <svg width="100" height="100" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" fill="none">
+                <defs>
+                    <linearGradient id="pf-gradient" x1="0" y1="0" x2="1" y2="1">
+                        <stop offset="0%" stop-color="#1e3c72" />
+                        <stop offset="100%" stop-color="#2a5298" />
+                    </linearGradient>
+                </defs>
+                <rect width="200" height="200" rx="40" fill="url(#pf-gradient)" />
+                <g transform="translate(50,50)">
+                    <circle cx="50" cy="50" r="40" stroke="white" stroke-width="6" fill="none" />
+                    <text x="50%" y="55%" text-anchor="middle" fill="white" font-size="40" font-family="Segoe UI, sans-serif" dy=".3em">P</text>
+                </g>
+            </svg>
         </div>
-    </body>
+        <h1>Pro-files GraphQL</h1>
+        <p>Powerful developer API for building and managing portfolio profiles.</p>
+
+        <div class="buttons">
+            <a href="/profilesql">📜 View Schema</a>
+            <!--<a href="/ui/voyager">🧭 Schema Explorer</a>-->
+            <!--profilesql?sdl-->
+            <a href="https://github.com/ojotobar/profiles-server" target="_blank">🔗 GitHub</a>
+            <!--<a href="https://docs.pro-files.dev" target="_blank">📘 Docs</a>-->
+        </div>
+
+        <h2>Example Query</h2>
+        <pre>
+    query {
+        profile{
+            id
+            firstName
+            lastName
+            gender
+            location{
+                line1
+                city
+                state
+                country
+            }
+        }
+    }
+        </pre>
+
+        <script>
+            function toggleTheme() {
+              const html = document.documentElement;
+              const theme = html.getAttribute("data-theme");
+              html.setAttribute("data-theme", theme === "dark" ? "light" : "dark");
+            }
+        </script>
+</body>
 </html>
