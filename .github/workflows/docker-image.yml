@@ -60,3 +60,7 @@ jobs:
           docker login -u ${{ secrets.PROFILES_PROD_HUB_USERNAME }} -p ${{ secrets.PROFILES_PROD_HUB_SECRET }}
           docker push ${{ secrets.PROFILES_PROD_HUB_USERNAME }}/pro-files-server:${{ steps.get_latest_tag.outputs.tag }}
           docker push ${{ secrets.PROFILES_PROD_HUB_USERNAME }}/pro-files-server:live
+      
+      - name: Trigger Automatic Deploy on Render
+        run: |
+          curl -X POST ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
