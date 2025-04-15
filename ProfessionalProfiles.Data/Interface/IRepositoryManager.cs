@@ -11,5 +11,6 @@
         IProjectRepository Project { get; }
         IProfessionalSummaryRepository Summary { get; }
         IFaqsRepository Faqs { get; }
+        IAuditRepository Audit { get; }
     }
 }

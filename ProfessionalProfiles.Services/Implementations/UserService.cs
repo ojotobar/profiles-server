@@ -65,16 +65,9 @@ namespace ProfessionalProfiles.Services.Implementations
             }
 
             var signinResult = await signInManager.PasswordSignInAsync(user, password, isPersistent: false, true);
-            if (signinResult.Succeeded && user.EmailConfirmed && user.DeactivatedOn <= DateTime.MaxValue)
+            if (signinResult.Succeeded && user.Status != EStatus.Suspended && user.Status != EStatus.Inactive && 
+                user.EmailConfirmed && user.DeactivatedOn == DateTime.MaxValue)
             {
-                if (user.Status == EStatus.Inactive && !user.IsDeprecated) //For users that deactivated, reactivate and log them in
-                {
-                    user.Status = EStatus.Active;
-                    user.IsDeprecated = false;
-                    user.UpdatedOn = DateTime.Now;
-                    user.DeactivatedOn = DateTime.MaxValue;
-                }
-
                 user.LastLogin = DateTime.Now;
                 await userManager.UpdateAsync(user);
                 response.Message = "Login successful";
@@ -144,12 +137,15 @@ namespace ProfessionalProfiles.Services.Implementations
                 response.EmailNotConfirmed = true;
                 response.Message = "Email not confirmed. Please confirm your account before attempting to login. Confirmation code sent to your email.";
             }
-
-            else if (user.Status == EStatus.Inactive && user.IsDeprecated)
+            else if (user.Status == EStatus.Inactive && user.DeactivatedOn < DateTime.MaxValue)
             {
-                response.Message = "Access denied. Account not deactivated. Please submit a support ticket to reactivate your account.";
+                var timeUntilDeletion = user.DeactivatedOn.AddDays(180).Date - DateTime.UtcNow.Date;
+                response.Message = $"Access denied. Account deactivated. Please submit a support ticket to reactivate your account. You have until {timeUntilDeletion} before your account is permanently deleted..";
             }
-
+            else if (user.Status == EStatus.Suspended && user.IsDeprecated)
+            {
+                response.Message = "Access denied. Account suspended. Please submit a support ticket if you feel you were suspended unjustly.";
+            }
             else
             {
                 response.Message = "Wrong email or password.";

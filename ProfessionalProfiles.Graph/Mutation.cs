@@ -1,4 +1,5 @@
-﻿using CSharpTypes.Extensions.Guid;
+﻿using CSharpTypes.Extensions.Enumeration;
+using CSharpTypes.Extensions.Guid;
 using CSharpTypes.Extensions.List;
 using CSharpTypes.Extensions.Object;
 using CSharpTypes.Extensions.String;
@@ -18,6 +19,7 @@ using ProfessionalProfiles.Graph.General;
 using ProfessionalProfiles.Graph.Projects;
 using ProfessionalProfiles.Graph.Skills;
 using ProfessionalProfiles.Graph.Validations;
+using ProfessionalProfiles.Services.Implementations;
 using ProfessionalProfiles.Services.Interfaces;
 using System.Net;
 
@@ -98,7 +100,8 @@ namespace ProfessionalProfiles.Graph
         /// <param name="repository"></param>
         /// <returns></returns>
         public async Task<Payload> VerifyAccountAsync(VerifyAccountInput input,
-            [Service] UserManager<Professional> userManager, [Service] IRepositoryManager repository)
+            [Service] UserManager<Professional> userManager, [Service] IRepositoryManager repository,
+            [Service] BackgroundJobsWorker auditLogger, [GlobalState] AuditLog auditLog)
         {
             if (input.Email.IsNullOrEmpty() || input.OTP.IsNullOrEmpty())
             {
@@ -133,6 +136,14 @@ namespace ProfessionalProfiles.Graph
             code.Used = true;
             await repository.OneTimePass.EditAsync(c => c.Id.Equals(code.Id), code);
 
+            if (auditLog != null)
+            {
+                auditLog.ActionId = EAction.VerifiedAccount;
+                auditLog.Action = auditLog.ActionId.GetDescription();
+                auditLog.UserId = user.Id.ToString();
+                await auditLogger.LogAuditAsync(auditLog);
+            }
+
             return new Payload("Account successfully verified. Please proceed to log in.", true);
         }
 
@@ -143,9 +154,9 @@ namespace ProfessionalProfiles.Graph
         /// <param name="service"></param>
         /// <param name="userManager"></param>
         /// <returns></returns>
-        public async Task<LoginResult> LoginUserAsync(LoginInput input,
-            [Service] IServiceManager service, [Service] UserManager<Professional> userManager,
-            [GlobalState] string? origin)
+        public async Task<LoginResult> LoginUserAsync(LoginInput input, [Service] IServiceManager service, 
+            [Service] UserManager<Professional> userManager, [Service] BackgroundJobsWorker auditLogger, 
+            [GlobalState] string? origin, [GlobalState] AuditLog? auditLog)
         {
             if (input.IsNull() || input.Email.IsNullOrEmpty() || input.Password.IsNullOrEmpty())
             {
@@ -170,7 +181,14 @@ namespace ProfessionalProfiles.Graph
             }
 
             var tokenDto = await service.User.CreateAccessToken(validate, user!);
-
+            if(auditLog != null)
+            {
+                auditLog.ActionId = EAction.LoggedIn;
+                auditLog.Action = auditLog.ActionId.GetDescription();
+                auditLog.UserId = user.Id.ToString();
+                await auditLogger.LogAuditAsync(auditLog);
+            }
+            
             return new LoginResult(tokenDto.AccessToken, tokenDto.UserName, validate.Message!, true);
         }
 
@@ -219,9 +237,9 @@ namespace ProfessionalProfiles.Graph
         /// <param name="origin"></param>
         /// <param name="service"></param>
         /// <returns></returns>
-        public async Task<Payload> ResetPasswordAsync(ResetPassInput input,
-            [Service] UserManager<Professional> userManager, [GlobalState] string? origin,
-            [Service] IServiceManager service)
+        public async Task<Payload> ResetPasswordAsync(ResetPassInput input, [Service] UserManager<Professional> userManager, 
+            [GlobalState] string? origin, [Service] IServiceManager service, [GlobalState] AuditLog? auditLog,
+            [Service] BackgroundJobsWorker auditLogger)
         {
             var user = await userManager.FindByEmailAsync(input.Email);
 
@@ -236,6 +254,15 @@ namespace ProfessionalProfiles.Graph
             {
                 return new Payload($"Could not send password code.");
             }
+
+            if (auditLog != null)
+            {
+                auditLog.ActionId = EAction.PasswordReset;
+                auditLog.Action = auditLog.ActionId.GetDescription();
+                auditLog.UserId = user.Id.ToString();
+                await auditLogger.LogAuditAsync(auditLog);
+            }
+
             return new Payload($"Password reset code successfully sent. Please check your email", true);
         }
 
@@ -247,7 +274,8 @@ namespace ProfessionalProfiles.Graph
         /// <param name="repository"></param>
         /// <returns></returns>
         public async Task<Payload> ChangeForgottenPasswordAsync(ForgotPasswordInput input,
-            [Service] UserManager<Professional> userManager, [Service] IRepositoryManager repository)
+            [Service] UserManager<Professional> userManager, [Service] IRepositoryManager repository,
+            [Service] BackgroundJobsWorker auditLogger, [GlobalState] AuditLog? auditLog)
         {
             var user = await userManager.FindByEmailAsync(input.Email);
             if (user == null)
@@ -278,6 +306,14 @@ namespace ProfessionalProfiles.Graph
                 return new Payload($"{result.Errors.FirstOrDefault()?.Description}");
             }
 
+            if (auditLog != null)
+            {
+                auditLog.ActionId = EAction.ForgottenPasswordChange;
+                auditLog.Action = auditLog.ActionId.GetDescription();
+                auditLog.UserId = user.Id.ToString();
+                await auditLogger.LogAuditAsync(auditLog);
+            }
+
             return new Payload($"Password reset successfully. Please proceed to login.", true);
         }
 
@@ -290,7 +326,8 @@ namespace ProfessionalProfiles.Graph
         /// <returns></returns>
         [Authorize]
         public async Task<Payload> ChangePassword(ChangePasswordInput input,
-            [Service] UserManager<Professional> userManager, [Service] IRepositoryManager repository)
+            [Service] UserManager<Professional> userManager, [Service] IRepositoryManager repository,
+            [Service] BackgroundJobsWorker auditLogger, [GlobalState] AuditLog? auditLog)
         {
             if (input.CurrentPassword.IsNullOrEmpty() || input.NewPassword.IsNullOrEmpty())
             {
@@ -315,6 +352,14 @@ namespace ProfessionalProfiles.Graph
                 return new Payload($"{result.Errors.FirstOrDefault()?.Description}");
             }
 
+            if (auditLog != null)
+            {
+                auditLog.ActionId = EAction.PasswordChange;
+                auditLog.Action = auditLog.ActionId.GetDescription();
+                auditLog.UserId = user.Id.ToString();
+                await auditLogger.LogAuditAsync(auditLog);
+            }
+
             return new Payload("Password changed successfully. Please login with the new password", true);
         }
         #endregion
@@ -329,7 +374,8 @@ namespace ProfessionalProfiles.Graph
         /// <returns></returns>
         [Authorize]
         public async Task<Payload> AddOrUpdateUserLocationAsync(UserLocationInput input,
-            [Service] UserManager<Professional> userManager, IRepositoryManager repository)
+            [Service] UserManager<Professional> userManager, IRepositoryManager repository,
+            [Service] BackgroundJobsWorker auditLogger, [GlobalState] AuditLog auditLog)
         {
             var validator = new UserLocationInputValidator().Validate(input);
             if (!validator.IsValid)
@@ -364,6 +410,14 @@ namespace ProfessionalProfiles.Graph
             }
             userValidationResult.User.Location = location;
             await userManager.UpdateAsync(userValidationResult.User);
+            if (auditLog != null)
+            {
+                auditLog.ActionId = EAction.ProfileUpdate;
+                auditLog.Action = string.Format(auditLog.ActionId.GetDescription(), $"{action.Capitalize()} Location");
+                auditLog.UserId = userId;
+                await auditLogger.LogAuditAsync(auditLog);
+            }
+
             return new Payload($"Location successfully {action}", true);
         }
 
@@ -376,7 +430,8 @@ namespace ProfessionalProfiles.Graph
         /// <returns></returns>
         [Authorize]
         public async Task<Payload> UploadProfilePhotoAsync([Service]UserManager<Professional> userManager, 
-            [Service]IRepositoryManager repository, [Service] IServiceManager service, IFile file)
+            [Service]IRepositoryManager repository, [Service] IServiceManager service, IFile file,
+            [Service] BackgroundJobsWorker auditLogger, [GlobalState] AuditLog auditLog)
         {
             var imageValidationResult = ValidateImageFile(file);
             if (!imageValidationResult.Payload.IsSuccessful)
@@ -399,6 +454,14 @@ namespace ProfessionalProfiles.Graph
             {
                 user.ProfilePicture = uploadResult.Link;
                 await userManager.UpdateAsync(user);
+                if (auditLog != null)
+                {
+                    auditLog.ActionId = EAction.ProfileUpdate;
+                    auditLog.Action = string.Format(auditLog.ActionId.GetDescription(), $"Uploaded Profile Photo");
+                    auditLog.UserId = userId;
+                    await auditLogger.LogAuditAsync(auditLog);
+                }
+
                 return new Payload("Profile picture successfully uploaded", true);
             }
 
@@ -415,7 +478,8 @@ namespace ProfessionalProfiles.Graph
         /// <returns></returns>
         [Authorize]
         public async Task<Payload> UploadResumeAsync([Service] UserManager<Professional> userManager,
-            [Service] IRepositoryManager repository, [Service] IServiceManager service, IFile file)
+            [Service] IRepositoryManager repository, [Service] IServiceManager service, IFile file,
+            [Service] BackgroundJobsWorker auditLogger, [GlobalState] AuditLog auditLog)
         {
             var imageValidationResult = ValidateDocFiles(file);
             if (!imageValidationResult.Payload.IsSuccessful)
@@ -438,6 +502,14 @@ namespace ProfessionalProfiles.Graph
             {
                 user.ResumeLink = uploadResult.Link;
                 await userManager.UpdateAsync(user);
+                if (auditLog != null)
+                {
+                    auditLog.ActionId = EAction.ProfileUpdate;
+                    auditLog.Action = string.Format(auditLog.ActionId.GetDescription(), $"Uploaded CV");
+                    auditLog.UserId = userId;
+                    await auditLogger.LogAuditAsync(auditLog);
+                }
+
                 return new Payload("File successfully uploaded", uploadResult.Success);
             }
 
@@ -453,7 +525,8 @@ namespace ProfessionalProfiles.Graph
         /// <returns></returns>
         [Authorize]
         public async Task<Payload> UpdateProfileDetailsAsync(ProfileDetailsInput input,
-            [Service] UserManager<Professional> userManager, [Service] IRepositoryManager repository)
+            [Service] UserManager<Professional> userManager, [Service] IRepositoryManager repository,
+            [Service] BackgroundJobsWorker auditLogger, [GlobalState] AuditLog auditLog)
         {
             var validator = new ProfileDetailsInputValidator().Validate(input);
             if (!validator.IsValid)
@@ -482,9 +555,247 @@ namespace ProfessionalProfiles.Graph
             user.Gender = input.Gender;
 
             await userManager.UpdateAsync(user);
+            if (auditLog != null)
+            {
+                auditLog.ActionId = EAction.ProfileUpdate;
+                auditLog.Action = string.Format(auditLog.ActionId.GetDescription(), $"Profile Details");
+                auditLog.UserId = userId;
+                await auditLogger.LogAuditAsync(auditLog);
+            }
+
             return new Payload("Profile details successfully updated", true);
         }
 
+        /// <summary>
+        /// Deactivate account
+        /// </summary>
+        /// <param name="userManager"></param>
+        /// <param name="auditLogger"></param>
+        /// <param name="auditLog"></param>
+        /// <param name="repository"></param>
+        /// <returns></returns>
+        [Authorize]
+        public async Task<Payload> DeactivateAccountAsync([Service] UserManager<Professional> userManager,
+            [Service] BackgroundJobsWorker auditLogger, [GlobalState] AuditLog auditLog, 
+            [Service] IRepositoryManager repository, [GlobalState] string? origin)
+        {
+            var loggedInUserId = repository.User.GetLoggedInUserId();
+            if (loggedInUserId.IsNullOrEmpty())
+            {
+                return new Payload("Access denied! Invalid user credentials.");
+            }
+
+            var user = await userManager.FindByIdAsync(loggedInUserId);
+            if(user == null)
+            {
+                return new Payload("No user found with the logged in user's credentials.");
+            }
+
+            var previousStatus = user.Status;
+
+            user.Status = EStatus.Inactive;
+            user.DeactivatedOn = DateTime.UtcNow;
+            await userManager.UpdateAsync(user);
+
+            var timeUntilDeletion = user.DeactivatedOn.AddDays(180);
+            if (auditLog != null)
+            {
+                auditLog.ActionId = EAction.StatusChange;
+                auditLog.Action = string.Format(auditLog.ActionId.GetDescription(), previousStatus.GetDescription(), user.Status.GetDescription());
+                auditLog.UserId = repository.User.GetLoggedInUserId();
+                await auditLogger.LogAuditAsync(auditLog);
+            }
+
+            await auditLogger.SendStatusChangeEmailAsync(origin ?? "", user.Email!, user.FirstName, user.Status);
+            return new Payload($"You have successfully deactivated your account. Submit a reactivation request before {timeUntilDeletion} to continue using your account", true);
+        }
+
+        /// <summary>
+        /// Service to change users' statuses
+        /// </summary>
+        /// <param name="input"></param>
+        /// <param name="userManager"></param>
+        /// <param name="auditLogger"></param>
+        /// <param name="auditLog"></param>
+        /// <param name="repository"></param>
+        /// <returns></returns>
+        /// <exception cref="InvalidOperationException"></exception>
+        [Authorize(Roles = ["Admin"])]
+        public async Task<Payload> ChangeStatusAsync(ChangeStatusInput input, [Service] UserManager<Professional> userManager,
+            [Service] BackgroundJobsWorker auditLogger, [GlobalState] AuditLog? auditLog, [Service] IRepositoryManager repository,
+            [GlobalState] string? origin)
+        {
+            var user = await userManager.FindByEmailAsync(input.UserEmail);
+            if (user == null)
+            {
+                return new Payload($"No user found with the Email: {input.UserEmail}.");
+            }
+
+            var performer = repository.User.GetLoggedInUserId();
+            if (string.IsNullOrEmpty(performer) || performer.Equals(user.Id.ToString()))
+            {
+                return new Payload($"You're not allowed to perform this operation on yourself");
+            }
+
+            var previousStatus = user.Status;
+            if(previousStatus == input.NewStatus)
+            {
+                return new Payload($"User already in status {input.NewStatus.GetDescription()}");
+            }
+
+            switch (input.NewStatus)
+            {
+                case EStatus.Inactive:
+                    user.Status = EStatus.Inactive;
+                    user.DeactivatedOn = DateTime.UtcNow;
+                    break;
+                case EStatus.Active:
+                    if (user.Status == EStatus.Inactive)
+                    {
+                        user.DeactivatedOn = DateTime.MaxValue;
+                    }
+                    else
+                    {
+                        user.IsDeprecated = false;
+                    }
+                    user.Status = EStatus.Active;
+                    break;
+                case EStatus.Suspended:
+                    user.Status = EStatus.Suspended;
+                    user.IsDeprecated = true;
+                    break;
+                default:
+                    throw new InvalidOperationException($"Invalid status {input.NewStatus} provided.");
+            }
+           
+            await userManager.UpdateAsync(user);
+            if(auditLog != null)
+            {
+                auditLog.ActionId = EAction.StatusChange;
+                auditLog.Action = string.Format(auditLog.ActionId.GetDescription(), previousStatus.GetDescription(), user.Status.GetDescription());
+                auditLog.UserId = performer;
+                auditLog.PerformedOn = user.Email;
+                await auditLogger.LogAuditAsync(auditLog);
+            }
+
+            await auditLogger.SendStatusChangeEmailAsync(origin ?? "", user.Email!, user.FirstName, user.Status);
+            return new Payload($"Status successfully changed to {input.NewStatus} for {input.UserEmail}.", true);
+        }
+
+        /// <summary>
+        /// Adds user to a defined role
+        /// </summary>
+        /// <param name="input"></param>
+        /// <param name="userManager"></param>
+        /// <param name="auditLogger"></param>
+        /// <param name="auditLog"></param>
+        /// <param name="repository"></param>
+        /// <param name="roleManager"></param>
+        /// <returns></returns>
+        [Authorize(Roles = ["Admin"])]
+        public async Task<Payload> ChangeRoleAsync(ChangeRoleInput input, [Service] UserManager<Professional> userManager,
+            [Service] BackgroundJobsWorker auditLogger, [GlobalState] AuditLog? auditLog, [Service] IRepositoryManager repository,
+            [Service] RoleManager<AppRole> roleManager, [GlobalState] string? origin)
+        {
+            var role = await roleManager.FindByNameAsync(input.Role.GetDescription());
+            if(role == null)
+            {
+                return new Payload($"No role found with the name: {input.Role.GetDescription()}.");
+            }
+
+            var user = await userManager.FindByEmailAsync(input.UserEmail);
+            if (user == null)
+            {
+                return new Payload($"No user found with the Email: {input.UserEmail}.");
+            }
+
+            var performer = repository.User.GetLoggedInUserId();
+            if (string.IsNullOrEmpty(performer) || performer.Equals(user.Id.ToString()))
+            {
+                return new Payload($"You're not allowed to perform this operation on yourself");
+            }
+
+            var previousRole = (await userManager.GetRolesAsync(user))?.FirstOrDefault();
+
+            var roleResult = await userManager.AddToRoleAsync(user, role.Name ?? input.Role.GetDescription());
+            if(roleResult == null || !roleResult.Succeeded)
+            {
+                return new Payload(roleResult?.Errors.FirstOrDefault()?.Description ?? "An error occurred. Could not update the user role");
+            }
+
+            if (!string.IsNullOrEmpty(previousRole))
+            {
+                await userManager.RemoveFromRoleAsync(user, previousRole);
+            }
+
+            if (auditLog != null)
+            {
+                auditLog.ActionId = EAction.RoleUpdate;
+                auditLog.Action = string.Format(auditLog.ActionId.GetDescription(), previousRole, input.Role.GetDescription());
+                auditLog.UserId = performer;
+                auditLog.PerformedOn = user.Email;
+                await auditLogger.LogAuditAsync(auditLog);
+            }
+
+            await auditLogger.SendRoleUpdateEmailAsync(origin!, user.Email!, user.FirstName, role.Name ?? input.Role.GetDescription());
+
+            return new Payload($"Status successfully changed to {input.Role.GetDescription()} for {input.UserEmail}.", true);
+        }
+
+        /// <summary>
+        /// Permanently deletes users' accounts and associated data
+        /// </summary>
+        /// <param name="userId"></param>
+        /// <param name="userManager"></param>
+        /// <param name="auditLogger"></param>
+        /// <param name="auditLog"></param>
+        /// <param name="repository"></param>
+        /// <param name="origin"></param>
+        /// <returns></returns>
+        [Authorize(Roles = ["Admin"])]
+        public async Task<Payload> DeleteAccountAsync(Guid userId, [Service] UserManager<Professional> userManager,
+            [Service] BackgroundJobsWorker auditLogger, [GlobalState] AuditLog? auditLog, 
+            [Service] IRepositoryManager repository, [GlobalState] string? origin)
+        {
+            var user = await userManager.FindByIdAsync(userId.ToString());
+            if (user == null)
+            {
+                return new Payload($"No user found with the Id: {userId}.");
+            }
+
+            var performer = repository.User.GetLoggedInUserId();
+            if (string.IsNullOrEmpty(performer) || performer.Equals(user.Id.ToString()))
+            {
+                return new Payload($"You're not allowed to perform this operation on yourself");
+            }
+
+            var result = await userManager.DeleteAsync(user);
+            if(result == null || !result.Succeeded)
+            {
+                return new Payload(result?.Errors?.FirstOrDefault()?.Description ?? "Account deletion failed. Please try again");
+            }
+
+            await repository.Certification.DeleteRangeAsync(c => c.UserId == userId, CancellationToken.None);
+            await repository.Education.DeleteRangeAsync(e => e.UserId == userId, CancellationToken.None);
+            await repository.WorkExperience.DeleteRangeAsync(xp => xp.UserId.Equals(userId), CancellationToken.None);
+            await repository.Skill.DeleteRangeAsync(s => s.UserId.Equals(userId), CancellationToken.None);
+            await repository.Project.DeleteRangeAsync(p => p.UserId.Equals(userId), CancellationToken.None);
+            await repository.Summary.DeleteAsync(s => s.UserId.Equals(userId));
+            //TODO: Delete cv and photo from fire store
+
+            if (auditLog != null)
+            {
+                auditLog.ActionId = EAction.Deleted;
+                auditLog.Action = string.Format(auditLog.ActionId.GetDescription(), user.Email!);
+                auditLog.UserId = performer;
+                auditLog.PerformedOn = user.Email;
+                await auditLogger.LogAuditAsync(auditLog);
+            }
+
+            await auditLogger.SendStatusChangeEmailAsync(origin!, user.Email!, user.FirstName, EStatus.Deleted);
+
+            return new Payload($"Account successfully deleted for {userId}.", true);
+        }
         #endregion
 
         #region Education Section
