@@ -18,6 +18,13 @@ namespace ProfessionalProfiles.Data.Implementations
         public async Task EditAsync(Expression<Func<Education, bool>> expression, Education entity) =>
             await UpdateAsync(expression, entity);
 
+        public async Task DeleteAsync(Expression<Func<Education, bool>> expression) =>
+            await RemoveAsync(expression);
+
+        public async Task DeleteRangeAsync(Expression<Func<Education, bool>> expression,
+            CancellationToken token)
+            => await RemoveManyAsync(expression, token);
+
         public async Task<List<Education>> FindManyAsync(Expression<Func<Education, bool>> expression) =>
             await GetManyAsync(expression);
 

@@ -19,6 +19,8 @@ namespace ProfessionalProfiles.Graph.Dto
         public ProfessionalLocation? Location { get; set; }
         public string Email { get; set; } = string.Empty;
         public string? PhoneNumber { get; set; }
+        public string Role { get; set; } = string.Empty;
+        public bool EmailConfirmed { get; set; }
         public string? PhotoUrl { get; set; }
         public string? CVUrl { get; set; }
 
@@ -41,11 +43,14 @@ namespace ProfessionalProfiles.Graph.Dto
                 UpdatedOn = user.UpdatedOn,
                 Location = user.Location,
                 CVUrl = user.ResumeLink,
-                PhotoUrl = user.ProfilePicture
+                PhotoUrl = user.ProfilePicture,
+                EmailConfirmed = user.EmailConfirmed
             };
         }
     }
 
     public record ProfileSummaryDto(long Education, long Experience, long Skills, long Projects, long Certifications, 
         bool HasCareerSummary, int Progress, bool CanGenerateApiKey, string? ApiKey = "");
+
+    public record DetailedProfileDto(ProfessionalDto Profile, ProfileSummaryDto ProfileSummary);
 }

@@ -1,15 +1,14 @@
 ﻿using CSharpTypes.Extensions.Guid;
 using CSharpTypes.Extensions.String;
 using HotChocolate.Authorization;
+using Mailjet.Client.Resources;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.Win32;
 using ProfessionalProfiles.Data.Interface;
-using ProfessionalProfiles.Entities.Enums;
 using ProfessionalProfiles.Entities.Models;
 using ProfessionalProfiles.Graph.Account;
 using ProfessionalProfiles.Graph.Dto;
+using ProfessionalProfiles.Graph.Extensions;
 using ProfessionalProfiles.Shared.Extensions;
-using System.Net;
 
 namespace ProfessionalProfiles.Graph
 {
@@ -83,10 +82,10 @@ namespace ProfessionalProfiles.Graph
         }
 
         /// <summary>
-        /// Gets logged in user's profile summary
+        /// Gets user summary data
         /// </summary>
         /// <param name="repository"></param>
-        /// <param name="apiKey"></param>
+        /// <param name="userManager"></param>
         /// <returns></returns>
         public async Task<ProfileSummaryDto?> GetUserSummaryAsync([Service] IRepositoryManager repository,
             [Service] UserManager<Professional> userManager)
@@ -103,24 +102,45 @@ namespace ProfessionalProfiles.Graph
                 return null;
             }
 
-            var educations = await repository.Education.CountAllAsync(e => e.UserId.Equals(userId) && !e.IsDeprecated);
-            var experiences = await repository.WorkExperience.CountAllAsync(we => we.UserId.Equals(userId) && !we.IsDeprecated);
-            var skills = await repository.Skill.CountAllAsync(s => s.UserId.Equals(userId) && !s.IsDeprecated);
-            var projects = await repository.Project.CountAllAsync(p => p.UserId.Equals(userId) && !p.IsDeprecated);
-            var certs = await repository.Certification.CountAllAsync(c => c.UserId.Equals(userId) && !c.IsDeprecated);
-            var hasSummary = await repository.Summary.HasAsync(cs => cs.UserId.Equals(userId) && !cs.IsDeprecated);
+            return await repository.GetProfileSummary(user);
+        }
 
-            var canGenerate = await repository.CanGenerateApiKey(user.EmailConfirmed, 
-                user.Location != null, user.ProfilePicture != null, user.ResumeLink != null);
+        [Authorize]
+        public async Task<DetailedProfileDto?> GetDetailedProfileAsync([Service] UserManager<Professional> userManager,
+            [Service] IRepositoryManager repository)
+        {
+            var userId = repository.User.GetLoggedInOrApiKeyUserId("");
 
-            var apiKey = "";
-            if(user.KeyMarker != default)
+            if (userId.IsEmpty())
             {
-                apiKey = user.Id.EncodeGuidAsBase64(user.KeyMarker);
+                return null;
             }
 
-            return new ProfileSummaryDto(educations, experiences, skills, projects, certs, 
-                hasSummary, canGenerate.Progress, canGenerate.CanGenerate, apiKey);
+            var user = await userManager.FindByIdAsync(userId.ToString());
+            if (user == null)
+            {
+                return null;
+            }
+
+            var summary = await repository.GetProfileSummary(user);
+            return new DetailedProfileDto(ProfessionalDto.MapData(user)!, summary);
+        }
+
+        /// <summary>
+        /// Gets a paginated list of users
+        /// </summary>
+        /// <param name="userManager"></param>
+        /// <param name="search"></param>
+        /// <returns></returns>
+        [UseOffsetPaging(IncludeTotalCount = true)]
+        [Authorize(Roles = ["Admin"])]
+        public async Task<IQueryable<ProfessionalDto>> GetUsersAsync([Service] UserManager<Professional> userManager,
+            UserFilterInput? search)
+        {
+            return (await userManager.Users
+                .Filter(search)
+                .MapAsync(userManager))
+                .OrderByDescending(u => u.CreatedOn); 
         }
         #endregion
 
@@ -390,14 +410,42 @@ namespace ProfessionalProfiles.Graph
 
         #region FAQs
         /// <summary>
-        /// Gets paginated list of FAQs
+        /// Gets paginated FAQs
         /// </summary>
         /// <param name="repository"></param>
+        /// <param name="search"></param>
         /// <returns></returns>
         [UseOffsetPaging(IncludeTotalCount = true)]
-        public IQueryable<Faqs> GetFaqs([Service] IRepositoryManager repository)
+        public IQueryable<Faqs> GetFaqs([Service] IRepositoryManager repository,
+            string? search)
         {
-            return repository.Faqs.FindAsQueryable(f => !f.IsDeprecated);
+            var faqs = repository.Faqs.FindAsQueryable(f => !f.IsDeprecated);
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                faqs = faqs.Where(f => f.Title.Contains(search, StringComparison.CurrentCultureIgnoreCase) || 
+                    f.Content.Contains(search, StringComparison.CurrentCultureIgnoreCase));
+            }
+
+            return faqs;
+        }
+        #endregion
+
+        #region Audit Log Section
+        /// <summary>
+        /// Gets paginated audit logs
+        /// </summary>
+        /// <param name="repository"></param>
+        /// <param name="search"></param>
+        /// <returns></returns>
+        [UseOffsetPaging(IncludeTotalCount = true)]
+        [Authorize(Roles = ["Admin"])]
+        public IQueryable<AuditLog> GetAuditLogs([Service] IRepositoryManager repository,
+            AuditLogFilterInput? search)
+        {
+            return repository.Audit
+                .AsQueryable(al => !al.IsDeprecated)
+                .Filter(search)
+                .OrderByDescending(a => a.CreatedOn);
         }
         #endregion
     }
