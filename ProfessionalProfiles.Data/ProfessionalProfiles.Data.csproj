@@ -10,6 +10,8 @@
     <PackageReference Include="DRY.MailJetClient.Library" Version="1.0.0" />
     <PackageReference Include="Microsoft.AspNetCore.Http.Abstractions" Version="2.2.0" />
     <PackageReference Include="Mongo.Common.Repo" Version="2.0.0" />
+    <PackageReference Include="Quartz" Version="3.14.0" />
+    <PackageReference Include="Quartz.Extensions.DependencyInjection" Version="3.14.0" />
   </ItemGroup>
 
   <ItemGroup>

@@ -15,10 +15,12 @@ builder.Services.ConfigureMailJet(config["MailJet:ApiKey"]!, config["MailJet:Api
 builder.Services.ConfigureCors();
 builder.Services.ConfigureDataAndServices();
 builder.Services.ConfigureJWT(builder.Configuration);
+builder.Services.ConfigureQuartz();
 builder.Services.AddGraphQLServer()
     .AddAuthorization()
     .AddQueryType<Query>()
     .AddMutationType<Mutation>()
+    //.AddFiltering()
     .AddType<UploadType>()
     .AddHttpRequestInterceptor<CustomeRequestInterceptor>()
     .AddMutationConventions();
@@ -32,6 +34,11 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.UseWebSockets();
 app.MapGraphQL("/profilesql");
-app.MapGet("/", () => "Welcome!");
+app.UseGraphQLVoyager();
+app.MapGet("/", async context =>
+{
+    context.Response.ContentType = "text/html";
+    await context.Response.SendFileAsync("wwwroot/ProfilesQL.html");
+});
 
 app.Run();

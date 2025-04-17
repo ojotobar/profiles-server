@@ -7,6 +7,10 @@ namespace ProfessionalProfiles.Entities.Enums
         [Description("Inactive")]
         Inactive,
         [Description("Active")]
-        Active
+        Active,
+        [Description("Suspended")]
+        Suspended,
+        [Description("Delete")]
+        Deleted
     }
 }

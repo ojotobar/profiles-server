@@ -1,4 +1,5 @@
-﻿using ProfessionalProfiles.Entities.Models;
+﻿using ProfessionalProfiles.Entities.Enums;
+using ProfessionalProfiles.Entities.Models;
 
 namespace ProfessionalProfiles.Services.Interfaces
 {
@@ -6,5 +7,7 @@ namespace ProfessionalProfiles.Services.Interfaces
     {
         Task<bool> SendAccountConfirmationEmail(Professional user, string origin);
         Task<bool> SendAccountRecoveryEmail(Professional user, string origin);
+        Task<bool> SendRoleChangeEmail(string origin, string email, string name, string role);
+        Task<bool> SendStatusChangeEmail(string origin, string email, string name, EStatus status);
     }
 }

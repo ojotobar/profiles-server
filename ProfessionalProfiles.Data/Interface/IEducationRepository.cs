@@ -13,5 +13,7 @@ namespace ProfessionalProfiles.Data.Interface
         Task<List<Education>> FindAsync(Expression<Func<Education, bool>> expression);
         Task<long> CountAllAsync(Expression<Func<Education, bool>> expression);
         Task<bool> HasAnyAsync(Expression<Func<Education, bool>> expression);
+        Task DeleteAsync(Expression<Func<Education, bool>> expression);
+        Task DeleteRangeAsync(Expression<Func<Education, bool>> expression, CancellationToken token);
     }
 }
