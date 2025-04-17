@@ -214,5 +214,26 @@ namespace ProfessionalProfiles.Graph.Dto
                     hasEducation && hasExperience && hasSkills && hasSummary && progress >= threshhold
                 );
         }
+
+        public static IQueryable<AuditLog> Map(this IQueryable<AuditLog> audits, UserManager<Professional> userManager)
+        {
+            var userIds = audits.Select(a => a.UserId).ToList();
+            var userMap = userManager.Users.Where(u => userIds.Contains(u.Id.ToString()))
+                .ToDictionary(u => u.Id, u => u);
+
+            var result = new List<AuditLog>();
+            foreach (var audit in audits)
+            {
+                if (userMap.TryGetValue(audit.UserId.ToGuid(), out var user))
+                {
+                    audit.PerformedBy = $"{user.FirstName} {user.LastName}";
+                }
+
+                result.Add(audit);
+            }
+
+            return result.AsQueryable();
+        }
+
     }
 }
