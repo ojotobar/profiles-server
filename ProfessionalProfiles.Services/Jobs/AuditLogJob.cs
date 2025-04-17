@@ -30,7 +30,6 @@ namespace ProfessionalProfiles.Services.Jobs
             var action = context.MergedJobDataMap.GetString("Action");
             var ip = context.MergedJobDataMap.GetString("Ip");
             var platform = context.MergedJobDataMap.GetString("Platform");
-            var performedOn = context.MergedJobDataMap.GetString("PerformedOn");
 
             if (userId != null && action != null && actionId.TryParseValue<EAction>(out var actionEnum) && 
                 ip != null && platform != null)
@@ -41,12 +40,10 @@ namespace ProfessionalProfiles.Services.Jobs
                     var audit = new AuditLog
                     {
                         UserId = user.Id.ToString(),
-                        PerformedBy = $"{user.FirstName} {user.LastName}",
                         Action = action,
                         ActionId = actionEnum,
                         IPAddress = ip,
                         Platform = platform,
-                        PerformedOn = performedOn
                     };
 
                     await repository.Audit.AddAsync(audit);

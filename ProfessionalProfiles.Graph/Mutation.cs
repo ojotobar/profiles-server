@@ -600,8 +600,8 @@ namespace ProfessionalProfiles.Graph
             var timeUntilDeletion = user.DeactivatedOn.AddDays(180);
             if (auditLog != null)
             {
-                auditLog.ActionId = EAction.StatusChange;
-                auditLog.Action = string.Format(auditLog.ActionId.GetDescription(), previousStatus.GetDescription(), user.Status.GetDescription());
+                auditLog.ActionId = EAction.Deactivated;
+                auditLog.Action = auditLog.ActionId.GetDescription();
                 auditLog.UserId = repository.User.GetLoggedInUserId();
                 await auditLogger.LogAuditAsync(auditLog);
             }
@@ -672,9 +672,8 @@ namespace ProfessionalProfiles.Graph
             if(auditLog != null)
             {
                 auditLog.ActionId = EAction.StatusChange;
-                auditLog.Action = string.Format(auditLog.ActionId.GetDescription(), previousStatus.GetDescription(), user.Status.GetDescription());
+                auditLog.Action = string.Format(auditLog.ActionId.GetDescription(), user.Email);
                 auditLog.UserId = performer;
-                auditLog.PerformedOn = user.Email;
                 await auditLogger.LogAuditAsync(auditLog);
             }
 
@@ -731,9 +730,8 @@ namespace ProfessionalProfiles.Graph
             if (auditLog != null)
             {
                 auditLog.ActionId = EAction.RoleUpdate;
-                auditLog.Action = string.Format(auditLog.ActionId.GetDescription(), previousRole, input.Role.GetDescription());
+                auditLog.Action = string.Format(auditLog.ActionId.GetDescription(), user.Email);
                 auditLog.UserId = performer;
-                auditLog.PerformedOn = user.Email;
                 await auditLogger.LogAuditAsync(auditLog);
             }
 
@@ -788,7 +786,6 @@ namespace ProfessionalProfiles.Graph
                 auditLog.ActionId = EAction.Deleted;
                 auditLog.Action = string.Format(auditLog.ActionId.GetDescription(), user.Email!);
                 auditLog.UserId = performer;
-                auditLog.PerformedOn = user.Email;
                 await auditLogger.LogAuditAsync(auditLog);
             }
 

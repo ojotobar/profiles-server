@@ -440,10 +440,12 @@ namespace ProfessionalProfiles.Graph
         [UseOffsetPaging(IncludeTotalCount = true)]
         [Authorize(Roles = ["Admin"])]
         public IQueryable<AuditLog> GetAuditLogs([Service] IRepositoryManager repository,
+            UserManager<Professional> userManager,
             AuditLogFilterInput? search)
         {
             return repository.Audit
                 .AsQueryable(al => !al.IsDeprecated)
+                .Map(userManager)
                 .Filter(search)
                 .OrderByDescending(a => a.CreatedOn);
         }
