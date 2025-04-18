@@ -8,7 +8,6 @@ namespace ProfessionalProfiles.Entities.Models
         public Guid Id { get; set; } = Guid.NewGuid();
         public string UserId { get; set; } = string.Empty;
         public string PerformedBy { get; set; } = string.Empty;
-        public string? PerformedOn { get; set; }
         public EAction ActionId { get; set; }
         public string Action { get; set; } = string.Empty;
         public string IPAddress { get; set; } = string.Empty;

@@ -27,7 +27,6 @@ namespace ProfessionalProfiles.Services.Implementations
                 .UsingJobData("ActionId", (int)auditLog.ActionId)
                 .UsingJobData("Ip", auditLog.IPAddress)
                 .UsingJobData("Platform", auditLog.Platform)
-                .UsingJobData("PerformedOn", auditLog.PerformedOn)
                 .WithIdentity(Guid.NewGuid().ToString())
                 .Build();
 

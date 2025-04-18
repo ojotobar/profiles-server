@@ -54,8 +54,8 @@ namespace ProfessionalProfiles.Graph
                 if (!string.IsNullOrWhiteSpace(query.Search))
                 {
                     data = data
-                        .Where(a => a.PerformedBy.Contains(query.Search, StringComparison.CurrentCultureIgnoreCase) || 
-                            (!string.IsNullOrEmpty(a.PerformedOn) && a.PerformedOn.Contains(query.Search, StringComparison.CurrentCultureIgnoreCase)));
+                        .Where(a => !string.IsNullOrEmpty(a.PerformedBy) && 
+                            a.PerformedBy.Contains(query.Search, StringComparison.CurrentCultureIgnoreCase));
                 }
             }
 

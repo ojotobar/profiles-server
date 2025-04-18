@@ -8,21 +8,23 @@ namespace ProfessionalProfiles.Entities.Enums
         LoggedIn,
         [Description("Verified Account")]
         VerifiedAccount,
-        [Description("Updated Role from {0} to {1}")]
+        [Description("Updated Role for {0}")]
         RoleUpdate,
         [Description("Updated Profile: {0}")]
         ProfileUpdate,
-        [Description("Status changed from {0} to {1}")]
+        [Description("Changed Status for {0}")]
         StatusChange,
-        [Description("Password Change")]
+        [Description("Changed Password")]
         PasswordChange,
-        [Description("Password Reset")]
+        [Description("Reset Password")]
         PasswordReset,
-        [Description("Change Forgotten Password")]
+        [Description("Changed Forgotten Password")]
         ForgottenPasswordChange,
         [Description("Deprecated accouount for {0}")]
         Deprecated,
-        [Description("Deleted {0}")]
-        Deleted
+        [Description("Deleted for {0}")]
+        Deleted,
+        [Description("Deactivated Account")]
+        Deactivated
     }
 }
