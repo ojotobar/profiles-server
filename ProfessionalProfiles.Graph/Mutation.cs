@@ -406,7 +406,7 @@ namespace ProfessionalProfiles.Graph
         /// <param name="userManager"></param>
         /// <returns></returns>
         [Authorize(Roles = ["Admin"])]
-        public async Task<Payload> UpdateSystemRoleAsync(AppRoleDto input, 
+        public async Task<Payload> UpdateSystemRoleAsync(AppRoleInput input, 
             [Service] RoleManager<AppRole> roleManager, [Service] UserManager<Professional> userManager)
         {
             if (string.IsNullOrEmpty(input.Name))
@@ -435,7 +435,7 @@ namespace ProfessionalProfiles.Graph
                 return new Payload(result.Errors.FirstOrDefault()?.Description ?? "An error occurred while adding the role");
             }
 
-            return new Payload($"The role, {input.Name} successfully Updated. Be informed that there'll need to be other configurations done before users are added to this role", true);
+            return new Payload($"The role, {input.Name} successfully Updated. Be informed that there'll need for other configurations to be done before users can are added to this role", true);
         }
 
         /// <summary>
@@ -468,7 +468,7 @@ namespace ProfessionalProfiles.Graph
                 return new Payload(result.Errors.FirstOrDefault()?.Description ?? "An error occurred while adding the role");
             }
 
-            return new Payload($"The role, {role.Name} successfully deleted. Be informed that there'll need to be other configurations done before users are added to this role", true);
+            return new Payload($"The role, {role.Name} successfully deleted.", true);
         }
         #endregion
 

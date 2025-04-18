@@ -10,4 +10,5 @@ namespace ProfessionalProfiles.Graph.Dto
     }
 
     public record AppRoleDto(Guid Id, string Name, long Users);
+    public record AppRoleInput(Guid Id, string Name);
 }
