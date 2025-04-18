@@ -21,6 +21,7 @@ using ProfessionalProfiles.Graph.Skills;
 using ProfessionalProfiles.Graph.Validations;
 using ProfessionalProfiles.Services.Implementations;
 using ProfessionalProfiles.Services.Interfaces;
+using System.Data;
 using System.Net;
 
 namespace ProfessionalProfiles.Graph
@@ -361,6 +362,113 @@ namespace ProfessionalProfiles.Graph
             }
 
             return new Payload("Password changed successfully. Please login with the new password", true);
+        }
+
+        /// <summary>
+        /// Add a new role
+        /// </summary>
+        /// <param name="roleName"></param>
+        /// <param name="roleManager"></param>
+        /// <returns></returns>
+        [Authorize(Roles = ["Admin"])]
+        public async Task<Payload> AddSystemRoleAsync(string roleName, [Service] RoleManager<AppRole> roleManager)
+        {
+            if (string.IsNullOrEmpty(roleName))
+            {
+                return new Payload("Role name is required.");
+            }
+
+            var exists = await roleManager.RoleExistsAsync(roleName);
+            if (exists)
+            {
+                return new Payload($"The role, {roleName} already exists.");
+            }
+
+            var result = await roleManager.CreateAsync(new AppRole
+            {
+                Name = roleName,
+                NormalizedName = roleName.ToUpper()
+            });
+
+            if (!result.Succeeded)
+            {
+                return new Payload(result.Errors.FirstOrDefault()?.Description ?? "An error occurred while adding the role");
+            }
+
+            return new Payload($"The role, {roleName} successfully added. Be informed that there'll need to be other configurations done before users are added to this role", true);
+        }
+
+        /// <summary>
+        /// Updates role
+        /// </summary>
+        /// <param name="input"></param>
+        /// <param name="roleManager"></param>
+        /// <param name="userManager"></param>
+        /// <returns></returns>
+        [Authorize(Roles = ["Admin"])]
+        public async Task<Payload> UpdateSystemRoleAsync(AppRoleDto input, 
+            [Service] RoleManager<AppRole> roleManager, [Service] UserManager<Professional> userManager)
+        {
+            if (string.IsNullOrEmpty(input.Name))
+            {
+                return new Payload("Role name is required.");
+            }
+
+            var role = await roleManager.FindByIdAsync(input.Id.ToString());
+            if (role == null)
+            {
+                return new Payload($"The role with this Id does not already exists.");
+            }
+
+            var hasUsers = userManager.Users.Any(u => u.Roles.Contains(role.Id));
+            if (hasUsers)
+            {
+                return new Payload("Could not update role because we already have users added to the role");
+            }
+
+            role.Name = input.Name;
+            role.NormalizedName = input.Name.ToUpper();
+            var result = await roleManager.UpdateAsync(role);
+
+            if (!result.Succeeded)
+            {
+                return new Payload(result.Errors.FirstOrDefault()?.Description ?? "An error occurred while adding the role");
+            }
+
+            return new Payload($"The role, {input.Name} successfully Updated. Be informed that there'll need to be other configurations done before users are added to this role", true);
+        }
+
+        /// <summary>
+        /// Deletes a role
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="roleManager"></param>
+        /// <param name="userManager"></param>
+        /// <returns></returns>
+        [Authorize(Roles = ["Admin"])]
+        public async Task<Payload> DeleteSystemRoleAsync(Guid id,
+            [Service] RoleManager<AppRole> roleManager, [Service] UserManager<Professional> userManager)
+        {
+            var role = await roleManager.FindByIdAsync(id.ToString());
+            if (role == null)
+            {
+                return new Payload($"The role with this Id does not already exists.");
+            }
+
+            var hasUsers = userManager.Users.Any(u => u.Roles.Contains(role.Id));
+            if (hasUsers)
+            {
+                return new Payload("Could not delete role because we already have users added to the role");
+            }
+
+            var result = await roleManager.DeleteAsync(role);
+
+            if (!result.Succeeded)
+            {
+                return new Payload(result.Errors.FirstOrDefault()?.Description ?? "An error occurred while adding the role");
+            }
+
+            return new Payload($"The role, {role.Name} successfully deleted. Be informed that there'll need to be other configurations done before users are added to this role", true);
         }
         #endregion
 

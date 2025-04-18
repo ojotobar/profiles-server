@@ -198,5 +198,10 @@ namespace ProfessionalProfiles.Graph.Dto
 
             return result.AsQueryable();
         }
+
+        public static IQueryable<AppRoleDto> Map(this IQueryable<AppRole> roles)
+        {
+            return roles.Select(r => new AppRoleDto(r.Id, r.Name ?? ""));
+        }
     }
 }

@@ -8,4 +8,6 @@ namespace ProfessionalProfiles.Graph.Dto
         public bool IsSuccessful { get; set; }
         public string Message { get; set; } = string.Empty;
     }
+
+    public record AppRoleDto(Guid Id, string Name);
 }

@@ -14,6 +14,20 @@ namespace ProfessionalProfiles.Graph
 {
     public class Query
     {
+        #region Account Section
+        /// <summary>
+        /// Get list of system roles
+        /// </summary>
+        /// <param name="roleManager"></param>
+        /// <returns></returns>
+        [Authorize(Roles = ["Admin"])]
+        public IQueryable<AppRoleDto> GetSystemRoles([Service] RoleManager<AppRole> roleManager)
+        {
+            return roleManager.Roles
+                .Map()
+                .OrderBy(r => r.Name);
+        }
+        #endregion
         #region Profile Section
         /// <summary>
         /// Generates Api Key for Users' Endpoint access

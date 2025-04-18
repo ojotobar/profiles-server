@@ -9,6 +9,8 @@ namespace ProfessionalProfiles.Entities.Enums
         [Description("ReadOnly")]
         ReadOnly,
         [Description("Admin")]
-        Admin
+        Admin,
+        [Description("SupportAgent")]
+        SupportAgent
     }
 }
