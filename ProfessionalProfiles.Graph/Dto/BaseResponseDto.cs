@@ -9,5 +9,5 @@ namespace ProfessionalProfiles.Graph.Dto
         public string Message { get; set; } = string.Empty;
     }
 
-    public record AppRoleDto(Guid Id, string Name);
+    public record AppRoleDto(Guid Id, string Name, long Users);
 }

@@ -21,10 +21,11 @@ namespace ProfessionalProfiles.Graph
         /// <param name="roleManager"></param>
         /// <returns></returns>
         [Authorize(Roles = ["Admin"])]
-        public IQueryable<AppRoleDto> GetSystemRoles([Service] RoleManager<AppRole> roleManager)
+        public IQueryable<AppRoleDto> GetSystemRoles([Service] RoleManager<AppRole> roleManager,
+            [Service] UserManager<Professional> userManager)
         {
             return roleManager.Roles
-                .Map()
+                .Map(userManager)
                 .OrderBy(r => r.Name);
         }
         #endregion
