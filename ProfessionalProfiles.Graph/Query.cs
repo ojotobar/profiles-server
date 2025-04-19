@@ -443,6 +443,19 @@ namespace ProfessionalProfiles.Graph
 
             return faqs;
         }
+
+        /// <summary>
+        /// Get FAQs record by Id
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="repository"></param>
+        /// <returns></returns>
+        [Authorize(Roles = ["Admin"])]
+        public async Task<Faqs?> GetFaqAsync(Guid id, [Service] IRepositoryManager repository)
+        {
+            return await repository
+                .Faqs.FindOneAsync(f => f.Id.Equals(id));
+        }
         #endregion
 
         #region Audit Log Section

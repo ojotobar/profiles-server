@@ -25,6 +25,8 @@ namespace ProfessionalProfiles.Entities.Enums
         [Description("Deleted for {0}")]
         Deleted,
         [Description("Deactivated Account")]
-        Deactivated
+        Deactivated,
+        [Description("{0} audit log with title {1}")]
+        AuditLogs
     }
 }
