@@ -27,6 +27,8 @@ namespace ProfessionalProfiles.Entities.Enums
         [Description("Deactivated Account")]
         Deactivated,
         [Description("{0} audit log with title {1}")]
-        AuditLogs
+        AuditLogs,
+        [Description("{0} role: {1}")]
+        RoleAdmin
     }
 }
