@@ -219,5 +219,17 @@ namespace ProfessionalProfiles.Graph.Dto
             return result.AsQueryable();
         }
 
+        public static IQueryable<AppRoleDto> Map(this IQueryable<AppRole> roles, UserManager<Professional> userManager)
+        {
+            var users = userManager.Users;
+            var result = new List<AppRoleDto>();
+            foreach(var role in roles)
+            {
+                var userCount = users.LongCount(u => u.Roles.Contains(role.Id));
+                result.Add(new AppRoleDto(role.Id, role.Name ?? "", userCount));
+            }
+
+            return result.AsQueryable();
+        }
     }
 }
