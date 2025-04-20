@@ -441,7 +441,7 @@ namespace ProfessionalProfiles.Graph
                     f.Content.Contains(search, StringComparison.CurrentCultureIgnoreCase));
             }
 
-            return faqs;
+            return faqs.OrderByDescending(f => f.CreatedOn);
         }
 
         /// <summary>
