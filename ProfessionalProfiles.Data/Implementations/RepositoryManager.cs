@@ -27,6 +27,8 @@ namespace ProfessionalProfiles.Data.Implementations
             => new WorkExperienceRepository(settings));
         private readonly Lazy<IFaqsRepository> faqsRepository = new(()
             => new FaqsRepository(settings));
+        private readonly Lazy<IAuditRepository> auditRepository = new(()
+            => new AuditRepository(settings));
 
         public IEducationRepository Education => educationRepository.Value;
         public IUserRepository User => userRepository.Value;
@@ -37,5 +39,6 @@ namespace ProfessionalProfiles.Data.Implementations
         public IProjectRepository Project => projectRepository.Value;
         public IProfessionalSummaryRepository Summary => professionalSummaryRepository.Value;
         public IFaqsRepository Faqs => faqsRepository.Value;
+        public IAuditRepository Audit => auditRepository.Value;
     }
 }

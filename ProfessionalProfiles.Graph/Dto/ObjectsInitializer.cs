@@ -1,4 +1,5 @@
 ﻿using CSharpTypes.Extensions.Guid;
+using Microsoft.AspNetCore.Identity;
 using ProfessionalProfiles.Data.Interface;
 using ProfessionalProfiles.Entities.Models;
 using ProfessionalProfiles.Graph.CareerSummaries;
@@ -140,79 +141,95 @@ namespace ProfessionalProfiles.Graph.Dto
             existingSkill.UpdatedOn = DateTime.UtcNow;
         }
 
-        public static async Task<(int Progress, bool CanGenerate)> CanGenerateApiKey(this IRepositoryManager repository, 
-            bool isEmailConfirmed, bool hasLocationAdded, bool hasProfilePics, bool hasCvAdded)
+        public static IQueryable<ProfessionalDto> Map(this IQueryable<Professional> users)
         {
-            const int threshhold = 80;
-            int progress = 10;
-            if (isEmailConfirmed)
+            return users
+            .Select(user => new ProfessionalDto
             {
-                progress += 10;
+                Id = user.Id,
+                FirstName = user.FirstName!,
+                LastName = user.LastName,
+                OtherName = user.OtherName,
+                Gender = user.Gender,
+                Status = user.Status,
+                Email = user.Email!,
+                PhoneNumber = user.PhoneNumber,
+                CreatedOn = user.CreatedOn,
+                DeactivatedOn = user.DeactivatedOn,
+                IsDeprecated = user.IsDeprecated,
+                LastLogin = user.LastLogin,
+                UpdatedOn = user.UpdatedOn,
+                Location = user.Location,
+                CVUrl = user.ResumeLink,
+                PhotoUrl = user.ProfilePicture,
+                EmailConfirmed = user.EmailConfirmed
+            });
+        }
+
+        public static async Task<IQueryable<ProfessionalDto>> MapAsync(this IQueryable<Professional> users, UserManager<Professional> userManager)
+        {
+            var result = new List<ProfessionalDto>();
+
+            foreach (var user in users)
+            {
+                var roles = await userManager.GetRolesAsync(user);
+                result.Add(new ProfessionalDto
+                {
+                    Id = user.Id,
+                    FirstName = user.FirstName!,
+                    LastName = user.LastName,
+                    OtherName = user.OtherName,
+                    Gender = user.Gender,
+                    Status = user.Status,
+                    Email = user.Email!,
+                    PhoneNumber = user.PhoneNumber,
+                    CreatedOn = user.CreatedOn,
+                    DeactivatedOn = user.DeactivatedOn,
+                    IsDeprecated = user.IsDeprecated,
+                    LastLogin = user.LastLogin,
+                    UpdatedOn = user.UpdatedOn,
+                    Location = user.Location,
+                    CVUrl = user.ResumeLink,
+                    PhotoUrl = user.ProfilePicture,
+                    EmailConfirmed = user.EmailConfirmed,
+                    Role = roles?.FirstOrDefault() ?? ""
+                });
             }
 
-            if (hasCvAdded)
+            return result.AsQueryable();
+        }
+
+        public static IQueryable<AuditLog> Map(this IQueryable<AuditLog> audits, UserManager<Professional> userManager)
+        {
+            var userIds = audits.Select(a => a.UserId).ToList();
+            var userMap = userManager.Users.Where(u => userIds.Contains(u.Id.ToString()))
+                .ToDictionary(u => u.Id, u => u);
+
+            var result = new List<AuditLog>();
+            foreach (var audit in audits)
             {
-                progress += 5;
+                if (userMap.TryGetValue(audit.UserId.ToGuid(), out var user))
+                {
+                    audit.PerformedBy = $"{user.FirstName} {user.LastName}";
+                }
+
+                result.Add(audit);
             }
 
-            if (hasProfilePics)
+            return result.AsQueryable();
+        }
+
+        public static IQueryable<AppRoleDto> Map(this IQueryable<AppRole> roles, UserManager<Professional> userManager)
+        {
+            var users = userManager.Users;
+            var result = new List<AppRoleDto>();
+            foreach(var role in roles)
             {
-                progress += 5;
+                var userCount = users.LongCount(u => u.Roles.Contains(role.Id));
+                result.Add(new AppRoleDto(role.Id, role.Name ?? "", userCount));
             }
 
-            if (hasLocationAdded)
-            {
-                progress += 10;
-            }
-
-            var userId = repository.User.GetLoggedInOrApiKeyUserId("");
-            if (userId.IsEmpty())
-            {
-                return (progress, false);
-            }
-
-            var hasEducation = await repository.Education.HasAnyAsync(e => e.UserId.Equals(userId));
-            if(hasEducation)
-            {
-                progress += 10;
-            }
-
-            var hasExperience = await repository.WorkExperience.HasAnyAsync(xp => xp.UserId.Equals(userId));
-            if (hasExperience)
-            {
-                progress += 10;
-            }
-
-            var hasSkills = await repository.Skill.HasAnyAsync(sk => sk.UserId.Equals(userId));
-            if (hasSkills)
-            {
-                progress += 10;
-            }
-
-            var hasProjects = await repository.Project.HasAnyAsync(pro => pro.UserId.Equals(userId));
-            if (hasProjects)
-            {
-                progress += 10;
-            }
-
-            var hasCert = await repository.Certification.HasAnyAsync(cert => cert.UserId.Equals(userId));
-            if (hasCert)
-            {
-                progress += 10;
-            }
-
-            var hasSummary = await repository.Summary.HasAsync(s => s.UserId.Equals(userId));
-            if (hasSummary)
-            {
-                progress += 10;
-            }
-            
-            return 
-                (
-                    progress,
-                    isEmailConfirmed && hasCvAdded && hasProfilePics && hasLocationAdded && 
-                    hasEducation && hasExperience && hasSkills && hasSummary && progress >= threshhold
-                );
+            return result.AsQueryable();
         }
     }
 }

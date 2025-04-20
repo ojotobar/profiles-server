@@ -1,5 +1,4 @@
 using DRY.MailJetClient.Library.Extensions;
-using GraphQL.Server.Ui.Voyager;
 using Mongo.Common.MongoDB;
 using ProfessionalProfiles.Configurations;
 using ProfessionalProfiles.Extensions;
@@ -16,10 +15,12 @@ builder.Services.ConfigureMailJet(config["MailJet:ApiKey"]!, config["MailJet:Api
 builder.Services.ConfigureCors();
 builder.Services.ConfigureDataAndServices();
 builder.Services.ConfigureJWT(builder.Configuration);
+builder.Services.ConfigureQuartz();
 builder.Services.AddGraphQLServer()
     .AddAuthorization()
     .AddQueryType<Query>()
     .AddMutationType<Mutation>()
+    //.AddFiltering()
     .AddType<UploadType>()
     .AddHttpRequestInterceptor<CustomeRequestInterceptor>()
     .AddMutationConventions();
