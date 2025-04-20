@@ -5,6 +5,8 @@ using CSharpTypes.Extensions.Object;
 using CSharpTypes.Extensions.String;
 using HotChocolate.Authorization;
 using Microsoft.AspNetCore.Identity;
+using Mongo.Common;
+using Mongo.Common.MongoDB;
 using ProfessionalProfiles.Data.Interface;
 using ProfessionalProfiles.Entities.Enums;
 using ProfessionalProfiles.Entities.Models;
@@ -21,6 +23,7 @@ using ProfessionalProfiles.Graph.Skills;
 using ProfessionalProfiles.Graph.Validations;
 using ProfessionalProfiles.Services.Implementations;
 using ProfessionalProfiles.Services.Interfaces;
+using ProfessionalProfiles.Services.Jobs;
 using System.Data;
 using System.Net;
 
@@ -371,7 +374,9 @@ namespace ProfessionalProfiles.Graph
         /// <param name="roleManager"></param>
         /// <returns></returns>
         [Authorize(Roles = ["Admin"])]
-        public async Task<Payload> AddSystemRoleAsync(string roleName, [Service] RoleManager<AppRole> roleManager)
+        public async Task<Payload> AddSystemRoleAsync(string roleName, [Service] RoleManager<AppRole> roleManager,
+            [Service] BackgroundJobsWorker auditLogger, [GlobalState] AuditLog auditLog,
+            [Service] IRepositoryManager repository)
         {
             if (string.IsNullOrEmpty(roleName))
             {
@@ -395,6 +400,14 @@ namespace ProfessionalProfiles.Graph
                 return new Payload(result.Errors.FirstOrDefault()?.Description ?? "An error occurred while adding the role");
             }
 
+            if (auditLog != null)
+            {
+                auditLog.ActionId = EAction.RoleAdmin;
+                auditLog.Action = string.Format(auditLog.ActionId.GetDescription(), "Added", $"{roleName}");
+                auditLog.UserId = repository.User.GetLoggedInUserId();
+                await auditLogger.LogAuditAsync(auditLog);
+            }
+
             return new Payload($"The role, {roleName} successfully added. Be informed that there'll need to be other configurations done before users are added to this role", true);
         }
 
@@ -407,7 +420,9 @@ namespace ProfessionalProfiles.Graph
         /// <returns></returns>
         [Authorize(Roles = ["Admin"])]
         public async Task<Payload> UpdateSystemRoleAsync(AppRoleInput input, 
-            [Service] RoleManager<AppRole> roleManager, [Service] UserManager<Professional> userManager)
+            [Service] RoleManager<AppRole> roleManager, [Service] UserManager<Professional> userManager,
+            [Service] BackgroundJobsWorker auditLogger, [GlobalState] AuditLog auditLog,
+            [Service] IRepositoryManager repository)
         {
             if (string.IsNullOrEmpty(input.Name))
             {
@@ -426,6 +441,7 @@ namespace ProfessionalProfiles.Graph
                 return new Payload("Could not update role because we already have users added to the role");
             }
 
+            var prevValue = role.Name;
             role.Name = input.Name;
             role.NormalizedName = input.Name.ToUpper();
             var result = await roleManager.UpdateAsync(role);
@@ -433,6 +449,14 @@ namespace ProfessionalProfiles.Graph
             if (!result.Succeeded)
             {
                 return new Payload(result.Errors.FirstOrDefault()?.Description ?? "An error occurred while adding the role");
+            }
+
+            if (auditLog != null)
+            {
+                auditLog.ActionId = EAction.RoleAdmin;
+                auditLog.Action = string.Format(auditLog.ActionId.GetDescription(), "Updated", $"{prevValue} to {input.Name}");
+                auditLog.UserId = repository.User.GetLoggedInUserId();
+                await auditLogger.LogAuditAsync(auditLog);
             }
 
             return new Payload($"The role, {input.Name} successfully Updated. Be informed that there'll need for other configurations to be done before users can are added to this role", true);
@@ -447,7 +471,9 @@ namespace ProfessionalProfiles.Graph
         /// <returns></returns>
         [Authorize(Roles = ["Admin"])]
         public async Task<Payload> DeleteSystemRoleAsync(Guid id,
-            [Service] RoleManager<AppRole> roleManager, [Service] UserManager<Professional> userManager)
+            [Service] RoleManager<AppRole> roleManager, [Service] UserManager<Professional> userManager,
+            [Service] BackgroundJobsWorker auditLogger, [GlobalState] AuditLog auditLog,
+            [Service] IRepositoryManager repository)
         {
             var role = await roleManager.FindByIdAsync(id.ToString());
             if (role == null)
@@ -466,6 +492,14 @@ namespace ProfessionalProfiles.Graph
             if (!result.Succeeded)
             {
                 return new Payload(result.Errors.FirstOrDefault()?.Description ?? "An error occurred while adding the role");
+            }
+
+            if (auditLog != null)
+            {
+                auditLog.ActionId = EAction.RoleAdmin;
+                auditLog.Action = string.Format(auditLog.ActionId.GetDescription(), "Deleted", $"{role.Name}");
+                auditLog.UserId = repository.User.GetLoggedInUserId();
+                await auditLogger.LogAuditAsync(auditLog);
             }
 
             return new Payload($"The role, {role.Name} successfully deleted.", true);
@@ -1504,6 +1538,109 @@ namespace ProfessionalProfiles.Graph
 
             await repository.Skill.DeleteAsync(s => s.Id.Equals(skillToDelete.Id));
             return new Payload("Skill deleted successful", true);
+        }
+        #endregion
+
+        #region FAQs Section
+        /// <summary>
+        /// Add FAQs record
+        /// </summary>
+        /// <param name="input"></param>
+        /// <param name="repository"></param>
+        /// <returns></returns>
+        [Authorize(Roles = ["Admin"])]
+        public async Task<Payload> AddFaqAsync(FaqsInput input, [Service] IRepositoryManager repository,
+            [Service] BackgroundJobsWorker auditLogger, [GlobalState] AuditLog auditLog)
+        {
+            if(string.IsNullOrWhiteSpace(input.Title) || string.IsNullOrWhiteSpace(input.Content))
+            {
+                return new Payload("The Title and the Content are required.");
+            }
+
+            await repository.Faqs.AddAsync(new Faqs
+            {
+                Title = input.Title,
+                Content = input.Content
+            });
+
+            if (auditLog != null)
+            {
+                auditLog.ActionId = EAction.AuditLogs;
+                auditLog.Action = string.Format(auditLog.ActionId.GetDescription(), "Added", $"{input.Title}");
+                auditLog.UserId = repository.User.GetLoggedInUserId();
+                await auditLogger.LogAuditAsync(auditLog);
+            }
+
+            return new Payload("FAQs record successfully added", true);
+        }
+
+        /// <summary>
+        /// Update FAQs record
+        /// </summary>
+        /// <param name="input"></param>
+        /// <param name="repository"></param>
+        /// <returns></returns>
+        [Authorize(Roles = ["Admin"])]
+        public async Task<Payload> UpdateFaqAsync(Guid id, FaqsInput input, [Service] IRepositoryManager repository,
+            [Service] BackgroundJobsWorker auditLogger, [GlobalState] AuditLog auditLog)
+        {
+            if (string.IsNullOrWhiteSpace(input.Title) || string.IsNullOrWhiteSpace(input.Content))
+            {
+                return new Payload("The Title and the Content are required.");
+            }
+
+            var record = await repository.Faqs.FindOneAsync(f => f.Id.Equals(id));
+            if(record == null)
+            {
+                return new Payload("No FAQs record found with the Id provided.");
+            }
+
+            var prevTitle = record.Title;
+            record.Title = input.Title;
+            record.Content = input.Content;
+            record.UpdatedOn = DateTime.UtcNow;
+
+            await repository.Faqs.EditAsync(f => f.Id.Equals(id), record);
+            if (auditLog != null)
+            {
+                auditLog.ActionId = EAction.AuditLogs;
+                auditLog.Action = string.Format(auditLog.ActionId.GetDescription(), "Updated", $"{prevTitle} to {record.Title}");
+                auditLog.UserId = repository.User.GetLoggedInUserId();
+                await auditLogger.LogAuditAsync(auditLog);
+            }
+
+            return new Payload("FAQs record successfully updated", true);
+        }
+
+        /// <summary>
+        /// Deletes FAQs record
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="input"></param>
+        /// <param name="repository"></param>
+        /// <param name="auditLogger"></param>
+        /// <param name="auditLog"></param>
+        /// <returns></returns>
+        [Authorize(Roles = ["Admin"])]
+        public async Task<Payload> DeleteFaqAsync(Guid id, [Service] IRepositoryManager repository,
+            [Service] BackgroundJobsWorker auditLogger, [GlobalState] AuditLog auditLog)
+        {
+            var record = await repository.Faqs.FindOneAsync(f => f.Id.Equals(id));
+            if (record == null)
+            {
+                return new Payload("No FAQs record found with the Id provided.");
+            }
+
+            await repository.Faqs.DeleteAsync(f => f.Id.Equals(id));
+            if (auditLog != null)
+            {
+                auditLog.ActionId = EAction.AuditLogs;
+                auditLog.Action = string.Format(auditLog.ActionId.GetDescription(), "Deleted", $"{record.Title}");
+                auditLog.UserId = repository.User.GetLoggedInUserId();
+                await auditLogger.LogAuditAsync(auditLog);
+            }
+
+            return new Payload("FAQs record successfully deleted", true);
         }
         #endregion
 
