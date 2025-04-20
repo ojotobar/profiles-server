@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Diagnostics;
+using Microsoft.AspNetCore.HttpOverrides;
 using Newtonsoft.Json;
 using ProfessionalProfiles.Graph.General;
 using System.Net;
@@ -9,6 +10,17 @@ namespace ProfessionalProfiles.Configurations
     {
         internal static void ConfigureExceptionHandler(this WebApplication app, ILogger<Program> logger)
         {
+            // Put this line before UseRouting() and after UseHttpsRedirection().
+
+            app.UseForwardedHeaders(new ForwardedHeadersOptions
+            {
+                ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto,
+
+                // Only do this if you're behind a trusted reverse proxy
+                KnownNetworks = { }, // Empty this if you want to allow all networks
+                KnownProxies = { }   // Or specify your proxy's IP if needed
+            });
+
             app.UseExceptionHandler(appError =>
             {
                 appError.Run(async context =>
