@@ -20,7 +20,8 @@ namespace ProfessionalProfiles.Extensions
             requestBuilder.SetGlobalState("auditLog", new AuditLog
             {
                 Platform = ParseUA(context.Request),
-                IPAddress = context.Connection.RemoteIpAddress?.ToString() ?? "",
+                IPAddress = context.Request.Headers["X-Forwarded-For"].FirstOrDefault() 
+                    ?? context.Connection.RemoteIpAddress?.ToString() ?? "Unknown"
             });
 
             return base.OnCreateAsync(context, requestExecutor, requestBuilder, cancellationToken);
