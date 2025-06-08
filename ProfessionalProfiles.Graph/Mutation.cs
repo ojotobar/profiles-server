@@ -16,6 +16,7 @@ using ProfessionalProfiles.Graph.Common;
 using ProfessionalProfiles.Graph.Dto;
 using ProfessionalProfiles.Graph.Educations;
 using ProfessionalProfiles.Graph.Experiences;
+using ProfessionalProfiles.Graph.Extensions;
 using ProfessionalProfiles.Graph.General;
 using ProfessionalProfiles.Graph.Projects;
 using ProfessionalProfiles.Graph.Skills;
@@ -571,6 +572,13 @@ namespace ProfessionalProfiles.Graph
         public async Task<Payload> AddOrUpdateSocialMediaAsync(ICollection<SocialMediaInput> inputs,
             [Service] UserManager<Professional> userManager, IRepositoryManager repository)
         {
+            var userId = repository.User.GetLoggedInUserId();
+            var userValidationResult = await ValidateLoggedinUser(userId, userManager);
+            if (!userValidationResult.IsSuccessful || userValidationResult.User == null)
+            {
+                return new Payload(userValidationResult.Message);
+            }
+
             if (!inputs.IsNotNullOrEmpty())
             {
                 return new Payload("One or more social media must be added.");
@@ -586,17 +594,9 @@ namespace ProfessionalProfiles.Graph
                 }
             }
 
-            var userId = repository.User.GetLoggedInUserId();
-            var userValidationResult = await ValidateLoggedinUser(userId, userManager);
-            if (!userValidationResult.IsSuccessful || userValidationResult.User == null)
-            {
-                return new Payload(userValidationResult.Message);
-            }
-
             var user = userValidationResult.User;
             var data = inputs.Map();
             user.SocialMedia = data.ToHashSet();
-
             await userManager.UpdateAsync(user);
             return new Payload($"Social Media successfully updated.", true);
         }
@@ -1047,8 +1047,16 @@ namespace ProfessionalProfiles.Graph
         /// <param name="repository"></param>
         /// <returns></returns>
         [Authorize]
-        public async Task<Payload> DeleteEducationAsync(Guid id, [Service] IRepositoryManager repository)
+        public async Task<Payload> DeleteEducationAsync(Guid id, [Service] IRepositoryManager repository, 
+            [Service]UserManager<Professional> userManager)
         {
+            var userId = repository.User.GetLoggedInUserId();
+            var isValidUser = await ValidateLoggedinUser(userId, userManager);
+            if(!isValidUser.IsSuccessful || isValidUser.User == null)
+            {
+                return new Payload(isValidUser.Message);
+            }
+
             var existingRecord = await repository.Education.FindOneAsync(e => !e.IsDeprecated && e.Id.Equals(id));
             if (existingRecord == null)
             {
@@ -1058,6 +1066,16 @@ namespace ProfessionalProfiles.Graph
             existingRecord.IsDeprecated = true;
             existingRecord.UpdatedOn = DateTime.UtcNow;
             await repository.Education.EditAsync(e => e.Id.Equals(existingRecord.Id), existingRecord);
+            
+            var user = isValidUser.User;
+            var canGenrateKey = await repository.CanGenerateApiKey(user.EmailConfirmed, user.Location != null, !string.IsNullOrWhiteSpace(user.ProfilePicture),
+                !string.IsNullOrWhiteSpace(user.ResumeLink), user.SocialMedia.IsNotNullOrEmpty());
+            if (!canGenrateKey.CanGenerate)
+            {
+                user.KeyMarker = default;
+                await userManager.UpdateAsync(user);
+            }
+
             return new Payload("Education record deleted successfully", true);
         }
         #endregion
@@ -1251,12 +1269,14 @@ namespace ProfessionalProfiles.Graph
         /// <param name="repository"></param>
         /// <returns></returns>
         [Authorize]
-        public async Task<Payload> DeleteCareerSummaryAsync(Guid id, IRepositoryManager repository)
+        public async Task<Payload> DeleteCareerSummaryAsync(Guid id, [Service]IRepositoryManager repository,
+            [Service] UserManager<Professional> userManager)
         {
-            var userId = repository.User.GetLoggedInUserId().ToGuid();
-            if (userId.IsEmpty())
+            var userId = repository.User.GetLoggedInUserId();
+            var isValidUser = await ValidateLoggedinUser(userId, userManager);
+            if (!isValidUser.IsSuccessful || isValidUser.User == null)
             {
-                return new Payload("Permission denied!!!");
+                return new Payload(isValidUser.Message);
             }
 
             var summary = await repository.Summary.FindAsync(c => c.Id.Equals(id));
@@ -1272,6 +1292,16 @@ namespace ProfessionalProfiles.Graph
             }
 
             await repository.Summary.DeleteAsync(c => c.Id.Equals(id));
+
+            var user = isValidUser.User;
+            var canGenrateKey = await repository.CanGenerateApiKey(user.EmailConfirmed, user.Location != null, !string.IsNullOrWhiteSpace(user.ProfilePicture),
+                !string.IsNullOrWhiteSpace(user.ResumeLink), user.SocialMedia.IsNotNullOrEmpty());
+            if (!canGenrateKey.CanGenerate)
+            {
+                user.KeyMarker = default;
+                await userManager.UpdateAsync(user);
+            }
+
             return new Payload("Professional Summary record deleted successfully", true);
         }
         #endregion
@@ -1356,12 +1386,14 @@ namespace ProfessionalProfiles.Graph
         /// <param name="repository"></param>
         /// <returns></returns>
         [Authorize]
-        public async Task<Payload> DeleteProjectAsync(Guid id, IRepositoryManager repository)
+        public async Task<Payload> DeleteProjectAsync(Guid id, [Service] IRepositoryManager repository,
+            [Service] UserManager<Professional> userManager)
         {
-            var userId = repository.User.GetLoggedInUserId().ToGuid();
-            if (userId.IsEmpty())
+            var userId = repository.User.GetLoggedInUserId();
+            var isValidUser = await ValidateLoggedinUser(userId, userManager);
+            if (!isValidUser.IsSuccessful || isValidUser.User == null)
             {
-                return new Payload("Permission denied!!!");
+                return new Payload(isValidUser.Message);
             }
 
             var certification = await repository.Project.FindAsync(c => c.Id.Equals(id));
@@ -1377,6 +1409,7 @@ namespace ProfessionalProfiles.Graph
             }
 
             await repository.Project.DeleteAsync(c => c.Id.Equals(id));
+
             return new Payload("Project deleted successfully", true);
         }
         #endregion
@@ -1461,12 +1494,14 @@ namespace ProfessionalProfiles.Graph
         /// <param name="repository"></param>
         /// <returns></returns>
         [Authorize]
-        public async Task<Payload> DeleteExperienceAsync(Guid id, IRepositoryManager repository)
+        public async Task<Payload> DeleteExperienceAsync(Guid id, [Service] IRepositoryManager repository,
+            [Service] UserManager<Professional> userManager)
         {
-            var userId = repository.User.GetLoggedInUserId().ToGuid();
-            if (userId.IsEmpty())
+            var userId = repository.User.GetLoggedInUserId();
+            var isValidUser = await ValidateLoggedinUser(userId, userManager);
+            if (!isValidUser.IsSuccessful || isValidUser.User == null)
             {
-                return new Payload("Permission denied!!!");
+                return new Payload(isValidUser.Message);
             }
 
             var experience = await repository.WorkExperience.FindAsync(c => c.Id.Equals(id));
@@ -1482,6 +1517,16 @@ namespace ProfessionalProfiles.Graph
             }
 
             await repository.WorkExperience.DeleteAsync(c => c.Id.Equals(id));
+
+            var user = isValidUser.User;
+            var canGenrateKey = await repository.CanGenerateApiKey(user.EmailConfirmed, user.Location != null, !string.IsNullOrWhiteSpace(user.ProfilePicture),
+                !string.IsNullOrWhiteSpace(user.ResumeLink), user.SocialMedia.IsNotNullOrEmpty());
+            if (!canGenrateKey.CanGenerate)
+            {
+                user.KeyMarker = default;
+                await userManager.UpdateAsync(user);
+            }
+
             return new Payload("Experience deleted successfully", true);
         }
         #endregion
@@ -1566,8 +1611,16 @@ namespace ProfessionalProfiles.Graph
         /// <param name="repository"></param>
         /// <returns></returns>
         [Authorize]
-        public async Task<Payload> DeleteSkillAsync(Guid id, IRepositoryManager repository)
+        public async Task<Payload> DeleteSkillAsync(Guid id, IRepositoryManager repository,
+            [Service] UserManager<Professional> userManager)
         {
+            var userId = repository.User.GetLoggedInUserId();
+            var isValidUser = await ValidateLoggedinUser(userId, userManager);
+            if (!isValidUser.IsSuccessful || isValidUser.User == null)
+            {
+                return new Payload(isValidUser.Message);
+            }
+
             var skillToDelete = await repository.Skill.FindAsync(s => s.Id.Equals(id) && !s.IsDeprecated);
             if (skillToDelete == null)
             {
@@ -1575,6 +1628,16 @@ namespace ProfessionalProfiles.Graph
             }
 
             await repository.Skill.DeleteAsync(s => s.Id.Equals(skillToDelete.Id));
+
+            var user = isValidUser.User;
+            var canGenrateKey = await repository.CanGenerateApiKey(user.EmailConfirmed, user.Location != null, !string.IsNullOrWhiteSpace(user.ProfilePicture),
+                !string.IsNullOrWhiteSpace(user.ResumeLink), user.SocialMedia.IsNotNullOrEmpty());
+            if (!canGenrateKey.CanGenerate)
+            {
+                user.KeyMarker = default;
+                await userManager.UpdateAsync(user);
+            }
+
             return new Payload("Skill deleted successful", true);
         }
         #endregion
