@@ -1,5 +1,4 @@
-﻿using CSharpTypes.Extensions.Guid;
-using ProfessionalProfiles.Entities.Models;
+﻿using ProfessionalProfiles.Entities.Models;
 using ProfessionalProfiles.Graph.Educations;
 
 namespace ProfessionalProfiles.Graph.Dto
@@ -16,6 +15,7 @@ namespace ProfessionalProfiles.Graph.Dto
                 StartDate = input.StartDate,
                 EndDate = input.EndDate,
                 UserId = userId,
+                OtherLevelSpecification = input.OtherLevelSpecification,
                 Location = new EntityLocation
                 {
                     City = input.Location.City,
@@ -35,6 +35,7 @@ namespace ProfessionalProfiles.Graph.Dto
             recordToUpdate.StartDate = input.StartDate;
             recordToUpdate.EndDate = input.EndDate;
             recordToUpdate.UpdatedOn = DateTime.UtcNow;
+            recordToUpdate.OtherLevelSpecification = input.OtherLevelSpecification;
             recordToUpdate.Location = new EntityLocation
             {
                 City = input.Location.City,

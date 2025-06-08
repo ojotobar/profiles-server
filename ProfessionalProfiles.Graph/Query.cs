@@ -1,4 +1,5 @@
 ﻿using CSharpTypes.Extensions.Guid;
+using CSharpTypes.Extensions.List;
 using CSharpTypes.Extensions.String;
 using HotChocolate.Authorization;
 using Mailjet.Client.Resources;
@@ -53,7 +54,7 @@ namespace ProfessionalProfiles.Graph
             }
 
             var canGenerate = await repository.CanGenerateApiKey(user.EmailConfirmed,
-                user.Location != null, user.ProfilePicture != null, user.ResumeLink != null);
+                user.Location != null, user.ProfilePicture != null, user.ResumeLink != null, user.SocialMedia.IsNotNullOrEmpty());
 
             if (canGenerate.CanGenerate)
             {
@@ -94,6 +95,31 @@ namespace ProfessionalProfiles.Graph
             }
 
             return ProfessionalDto.MapData(user);
+        }
+
+        /// <summary>
+        /// Gets user's social media records
+        /// </summary>
+        /// <param name="userManager"></param>
+        /// <param name="repository"></param>
+        /// <returns></returns>
+        [Authorize]
+        public async Task<SocialMediaResult> GetSocialMediaAsync([Service] UserManager<Professional> userManager,
+            [Service] IRepositoryManager repository)
+        {
+            var userId = repository.User.GetLoggedInUserId();
+            if (!userId.IsNotNullOrEmpty())
+            {
+                return new SocialMediaResult(false, []);
+            }
+
+            var user = await userManager.FindByIdAsync(userId.ToString());
+            if (user == null)
+            {
+                return new SocialMediaResult(false, []);
+            }
+
+            return new SocialMediaResult(true, user.SocialMedia.ToList());
         }
 
         /// <summary>
