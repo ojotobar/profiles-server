@@ -4,9 +4,8 @@ using CSharpTypes.Extensions.List;
 using CSharpTypes.Extensions.Object;
 using CSharpTypes.Extensions.String;
 using HotChocolate.Authorization;
+using Mailjet.Client.Resources;
 using Microsoft.AspNetCore.Identity;
-using Mongo.Common;
-using Mongo.Common.MongoDB;
 using ProfessionalProfiles.Data.Interface;
 using ProfessionalProfiles.Entities.Enums;
 using ProfessionalProfiles.Entities.Models;
@@ -23,8 +22,6 @@ using ProfessionalProfiles.Graph.Skills;
 using ProfessionalProfiles.Graph.Validations;
 using ProfessionalProfiles.Services.Implementations;
 using ProfessionalProfiles.Services.Interfaces;
-using ProfessionalProfiles.Services.Jobs;
-using System.Data;
 using System.Net;
 
 namespace ProfessionalProfiles.Graph
@@ -561,6 +558,47 @@ namespace ProfessionalProfiles.Graph
             }
 
             return new Payload($"Location successfully {action}", true);
+        }
+
+        /// <summary>
+        /// Add or Update User's Social Media Handles
+        /// </summary>
+        /// <param name="inputs"></param>
+        /// <param name="userManager"></param>
+        /// <param name="repository"></param>
+        /// <returns></returns>
+        [Authorize]
+        public async Task<Payload> AddOrUpdateSocialMediaAsync(ICollection<SocialMediaInput> inputs,
+            [Service] UserManager<Professional> userManager, IRepositoryManager repository)
+        {
+            if (!inputs.IsNotNullOrEmpty())
+            {
+                return new Payload("One or more social media must be added.");
+            }
+
+            foreach (var input in inputs)
+            {
+                var validator = new SocialMediaInputValidator().Validate(input);
+                if (!validator.IsValid)
+                {
+                    var message = validator.Errors.FirstOrDefault()?.ErrorMessage ?? "Invalid input! Please try again.";
+                    return new Payload(message);
+                }
+            }
+
+            var userId = repository.User.GetLoggedInUserId();
+            var userValidationResult = await ValidateLoggedinUser(userId, userManager);
+            if (!userValidationResult.IsSuccessful || userValidationResult.User == null)
+            {
+                return new Payload(userValidationResult.Message);
+            }
+
+            var user = userValidationResult.User;
+            var data = inputs.Map();
+            user.SocialMedia = data.ToHashSet();
+
+            await userManager.UpdateAsync(user);
+            return new Payload($"Social Media successfully updated.", true);
         }
 
         /// <summary>

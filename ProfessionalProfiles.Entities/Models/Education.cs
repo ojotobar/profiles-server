@@ -15,9 +15,12 @@ namespace ProfessionalProfiles.Entities.Models
         [Required]
         public EEducationLevel Level { get; set; }
         public string LevelDescription 
-            => Level.GetDescription();
+            => Level != EEducationLevel.Other ?
+            Level.GetDescription() : 
+            string.Format(Level.GetDescription(), OtherLevelSpecification);
         [Required]
         public string Major { get; set; } = string.Empty;
+        public string? OtherLevelSpecification { get; set; }
         [Required]
         public DateTime StartDate { get; set; }
         public DateTime? EndDate { get; set; }
