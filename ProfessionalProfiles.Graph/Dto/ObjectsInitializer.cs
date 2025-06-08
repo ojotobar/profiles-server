@@ -4,6 +4,7 @@ using ProfessionalProfiles.Data.Interface;
 using ProfessionalProfiles.Entities.Models;
 using ProfessionalProfiles.Graph.CareerSummaries;
 using ProfessionalProfiles.Graph.Certfications;
+using ProfessionalProfiles.Graph.Common;
 using ProfessionalProfiles.Graph.Experiences;
 using ProfessionalProfiles.Graph.Projects;
 using ProfessionalProfiles.Graph.Skills;
@@ -230,6 +231,21 @@ namespace ProfessionalProfiles.Graph.Dto
             }
 
             return result.AsQueryable();
+        }
+
+        public static List<SocialMedia> Map(this ICollection<SocialMediaInput> inputs)
+        {
+            var result = new List<SocialMedia>();
+            foreach (var input in inputs.DistinctBy(i => i.Type))
+            {
+                result.Add(new SocialMedia
+                {
+                    Type = input.Type,
+                    Link = input.Link,
+                    IconName = input.IconName ?? ""
+                });
+            }
+            return result;
         }
     }
 }

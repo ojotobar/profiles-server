@@ -1,5 +1,6 @@
 ﻿using CSharpTypes.Extensions.List;
 using CSharpTypes.Extensions.String;
+using ProfessionalProfiles.Entities.Enums;
 using System.Text.RegularExpressions;
 
 namespace ProfessionalProfiles.Graph.Validations
@@ -29,6 +30,13 @@ namespace ProfessionalProfiles.Graph.Validations
         internal static bool BeAValidDateRange(DateTime startDate, DateTime? endDate)
         {
             return !endDate.HasValue || (endDate.HasValue && startDate.Date < endDate.Value.Date);
+        }
+
+        internal static bool LevelSpecifiedWhenOther(EEducationLevel level, string? specificLevel)
+        {
+            return level != EEducationLevel.Other || 
+                (level == EEducationLevel.Other && 
+                !string.IsNullOrWhiteSpace(specificLevel));
         }
 
         internal static bool BeAValidDate(DateTime? date)

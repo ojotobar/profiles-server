@@ -23,5 +23,6 @@ namespace ProfessionalProfiles.Entities.Models
         public long KeyMarker { get; set; }
         public string? ProfilePicture { get; set; }
         public string? ResumeLink { get; set; }
+        public HashSet<SocialMedia> SocialMedia { get; set; } = [];
     }
 }

@@ -4,7 +4,7 @@ namespace ProfessionalProfiles.Entities.Enums
 {
     public enum EEducationLevel
     {
-        [Description("Others")]
+        [Description("{0}")]
         Other,
         [Description("OND")]
         OrdinaryDiploma,

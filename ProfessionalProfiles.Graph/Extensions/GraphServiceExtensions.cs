@@ -1,4 +1,5 @@
 ﻿using CSharpTypes.Extensions.Guid;
+using CSharpTypes.Extensions.List;
 using ProfessionalProfiles.Data.Interface;
 using ProfessionalProfiles.Entities.Models;
 using ProfessionalProfiles.Graph.Dto;
@@ -18,7 +19,7 @@ namespace ProfessionalProfiles.Graph.Extensions
             var hasSummary = await repository.Summary.HasAsync(cs => cs.UserId.Equals(user.Id) && !cs.IsDeprecated);
 
             var canGenerate = await repository.CanGenerateApiKey(user.EmailConfirmed,
-                user.Location != null, user.ProfilePicture != null, user.ResumeLink != null);
+                user.Location != null, user.ProfilePicture != null, user.ResumeLink != null, user.SocialMedia.IsNotNullOrEmpty());
 
             var apiKey = "";
             if (user.KeyMarker != default)
@@ -31,7 +32,7 @@ namespace ProfessionalProfiles.Graph.Extensions
         }
 
         public static async Task<(int Progress, bool CanGenerate)> CanGenerateApiKey(this IRepositoryManager repository,
-            bool isEmailConfirmed, bool hasLocationAdded, bool hasProfilePics, bool hasCvAdded)
+            bool isEmailConfirmed, bool hasLocationAdded, bool hasProfilePics, bool hasCvAdded, bool hasSocialMedia)
         {
             const int threshhold = 80;
             int progress = 10;
@@ -52,7 +53,12 @@ namespace ProfessionalProfiles.Graph.Extensions
 
             if (hasLocationAdded)
             {
-                progress += 10;
+                progress += 5;
+            }
+
+            if (hasSocialMedia)
+            {
+                progress += 5;
             }
 
             var userId = repository.User.GetLoggedInOrApiKeyUserId("");

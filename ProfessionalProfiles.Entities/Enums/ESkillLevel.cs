@@ -4,15 +4,15 @@ namespace ProfessionalProfiles.Entities.Enums
 {
     public enum ESkillLevel
     {
-        [Description("(Basic) – Limited practical experience.")]
+        [Description("(Beginner) – Soft neutral.")]
         Beginner,
-        [Description("(Limited Experience) – Can perform simple tasks with help.")]
+        [Description("(Novice) – Cautious, emerging.")]
         Novice,
-        [Description("(Working Experience) – Can work independently.")]
+        [Description("(Intermediate) – Stable, learning.")]
         Intermediate,
-        [Description("(Proficient) – Strong expertise in the skill.")]
+        [Description("(Advanced) – Confident, solid.")]
         Advanced,
-        [Description("(Mastery) – Recognized authority in the field.")]
+        [Description("(Expert) – Mastery, wisdom.")]
         Expert
     }
 }

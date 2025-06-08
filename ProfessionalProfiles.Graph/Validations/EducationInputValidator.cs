@@ -9,7 +9,7 @@ namespace ProfessionalProfiles.Graph.Validations
             RuleFor(x => x.SchoolName)
                 .NotEmpty().WithMessage("Institution name is required");
             RuleFor(x => x.Level)
-                .IsInEnum().WithMessage("Invalid gender");
+                .IsInEnum().WithMessage("Invalid education level");
             RuleFor(x => x.Course)
                 .NotEmpty().WithMessage("Course is required.");
             RuleFor(x => x.Location)
@@ -24,6 +24,9 @@ namespace ProfessionalProfiles.Graph.Validations
                 .Must(ValidationExtensions.BeAValidDate).WithMessage("Invalid End Date");
             RuleFor(x => x).Must(args => ValidationExtensions.BeAValidDateRange(args.StartDate, args.EndDate))
                 .WithMessage("End Date must be later than the Start Date.");
+            RuleFor(x => x)
+                .Must(args => ValidationExtensions.LevelSpecifiedWhenOther(args.Level, args.OtherLevelSpecification))
+                .WithMessage("Education Level must be specified when 'Other' is selected");
         }
     }
 }

@@ -23,6 +23,7 @@ namespace ProfessionalProfiles.Graph.Dto
         public bool EmailConfirmed { get; set; }
         public string? PhotoUrl { get; set; }
         public string? CVUrl { get; set; }
+        public List<SocialMedia> SocialMedia { get; set; } = [];
 
         public static ProfessionalDto? MapData(Professional? user)
         {
@@ -44,7 +45,8 @@ namespace ProfessionalProfiles.Graph.Dto
                 Location = user.Location,
                 CVUrl = user.ResumeLink,
                 PhotoUrl = user.ProfilePicture,
-                EmailConfirmed = user.EmailConfirmed
+                EmailConfirmed = user.EmailConfirmed,
+                SocialMedia = user.SocialMedia.ToList()
             };
         }
     }
@@ -53,4 +55,5 @@ namespace ProfessionalProfiles.Graph.Dto
         bool HasCareerSummary, int Progress, bool CanGenerateApiKey, string? ApiKey = "");
 
     public record DetailedProfileDto(ProfessionalDto Profile, ProfileSummaryDto ProfileSummary);
+    public record SocialMediaResult(bool Success, List<SocialMedia> SocialMedia);
 }
