@@ -1,6 +1,5 @@
 ﻿using CSharpTypes.Extensions.Guid;
 using Microsoft.AspNetCore.Identity;
-using ProfessionalProfiles.Data.Interface;
 using ProfessionalProfiles.Entities.Models;
 using ProfessionalProfiles.Graph.CareerSummaries;
 using ProfessionalProfiles.Graph.Certfications;
