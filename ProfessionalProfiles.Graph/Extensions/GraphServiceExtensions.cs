@@ -31,6 +31,19 @@ namespace ProfessionalProfiles.Graph.Extensions
                 hasSummary, canGenerate.Progress, canGenerate.CanGenerate, apiKey);
         }
 
+        public static async Task<ProfileSummary> GetProfileSummaryForMenus(this IRepositoryManager repository, Professional user)
+        {
+            var hasEducation = await repository.Education.HasAnyAsync(e => e.UserId.Equals(user.Id) && !e.IsDeprecated);
+            var hasXp = await repository.WorkExperience.HasAnyAsync(we => we.UserId.Equals(user.Id) && !we.IsDeprecated);
+            var hasSkills = await repository.Skill.HasAnyAsync(s => s.UserId.Equals(user.Id) && !s.IsDeprecated);
+            var hasProject = await repository.Project.HasAnyAsync(p => p.UserId.Equals(user.Id) && !p.IsDeprecated);
+            var hasCerts = await repository.Certification.HasAnyAsync(c => c.UserId.Equals(user.Id) && !c.IsDeprecated);
+            var hasSummary = await repository.Summary.HasAsync(cs => cs.UserId.Equals(user.Id) && !cs.IsDeprecated);
+
+            return new ProfileSummary(user.FirstName, user.LastName, user.ProfilePicture ?? "", "", 
+                hasXp, hasSkills, hasEducation, hasProject, hasCerts, user.SocialMedia.ToList());
+        }
+
         public static async Task<(int Progress, bool CanGenerate)> CanGenerateApiKey(this IRepositoryManager repository,
             bool isEmailConfirmed, bool hasLocationAdded, bool hasProfilePics, bool hasCvAdded, bool hasSocialMedia)
         {

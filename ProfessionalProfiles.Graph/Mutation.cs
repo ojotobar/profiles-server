@@ -4,7 +4,6 @@ using CSharpTypes.Extensions.List;
 using CSharpTypes.Extensions.Object;
 using CSharpTypes.Extensions.String;
 using HotChocolate.Authorization;
-using Mailjet.Client.Resources;
 using Microsoft.AspNetCore.Identity;
 using ProfessionalProfiles.Data.Interface;
 using ProfessionalProfiles.Entities.Enums;
@@ -23,7 +22,9 @@ using ProfessionalProfiles.Graph.Skills;
 using ProfessionalProfiles.Graph.Validations;
 using ProfessionalProfiles.Services.Implementations;
 using ProfessionalProfiles.Services.Interfaces;
+using ProfessionalProfiles.Shared.Extensions;
 using System.Net;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace ProfessionalProfiles.Graph
 {
@@ -744,6 +745,60 @@ namespace ProfessionalProfiles.Graph
             }
 
             return new Payload("Profile details successfully updated", true);
+        }
+
+        /// <summary>
+        /// Endpoint to clean up firebase storage
+        /// </summary>
+        /// <param name="input"></param>
+        /// <param name="jobScheduler"></param>
+        /// <returns></returns>
+        [Authorize(Roles = ["Admin"])]
+        public async Task<Payload> CleanUpFirebase(FirebaseCleanupInput input, 
+            [Service] BackgroundJobsWorker jobScheduler)
+        {
+            await jobScheduler.CleanUpFirebaseStorage(input.DeleteAll);
+            return new Payload("Clean Up Job scheduled...", true);
+        }
+
+        /// <summary>
+        /// Remove user assets like photo and CV
+        /// </summary>
+        /// <param name="type"></param>
+        /// <param name="service"></param>
+        /// <param name="repository"></param>
+        /// <param name="userManager"></param>
+        /// <returns></returns>
+        [Authorize]
+        public async Task<Payload> DeleteUserAssetAsync(ECloudFolder type, 
+            [Service] IServiceManager service, [Service] IRepositoryManager repository,
+            [Service] UserManager<Professional> userManager)
+        {
+            var userId = repository.User.GetLoggedInUserId();
+            var user = await userManager.FindByIdAsync(userId);
+            if(user == null)
+            {
+                return new Payload("User found");
+            }
+
+            var fileToDelete = GetFileName(user, type);
+            if (string.IsNullOrEmpty(fileToDelete))
+            {
+                return new Payload("Could not get the file name to delete. Please try again later");
+            }
+
+            await service.Firebase.RemoveFileAsync(type, fileToDelete);
+            if(type == ECloudFolder.ProfilePics)
+            {
+                user.ProfilePicture = string.Empty;
+            }
+            else
+            {
+                user.ResumeLink = string.Empty;
+            }
+
+            await userManager.UpdateAsync(user);
+            return new Payload("File successfully deleted", true);
         }
 
         /// <summary>
@@ -1808,14 +1863,42 @@ namespace ProfessionalProfiles.Graph
             var fileName = file.Name.Replace(" ", "_");
             if (ext.IsNotNullOrEmpty())
             {
-                var split = user.Id.ToString().Split("-");
-                var idSnippet = split.Length > 0 ? $"_{split[0]}" : "";
-                fileName = folder == ECloudFolder.Resume ? 
-                    $"{user.LastName}_{user.FirstName}{idSnippet}_CV{ext}" :
-                    $"{user.LastName}_{user.FirstName}{idSnippet}{ext}"; ;
+                var base64EncodedStr = user.Id.EncodeGuidAsBase64();
+                fileName = $"{base64EncodedStr}_{folder}{ext}";
             }
 
             return fileName;
+        }
+
+        private string GetFileName(Professional user, ECloudFolder folderType)
+        {
+            var file = folderType == ECloudFolder.ProfilePics ?
+                user.ProfilePicture : user.ResumeLink;
+
+            if (!string.IsNullOrWhiteSpace(file))
+            {
+                var base64IdString = user.Id.EncodeGuidAsBase64();
+                var fileNameWithoutExt = $"{base64IdString}_{folderType}";
+                var fileNameSplit = file.Split($"{fileNameWithoutExt}");
+                if( fileNameSplit.Length > 1)
+                {
+                    var extSplit = fileNameSplit[1].Split('?');
+                    if(extSplit.Length > 0)
+                    {
+                        return $"{fileNameWithoutExt}{extSplit[0]}";
+                    }
+                    else
+                    {
+                        return string.Empty;
+                    }
+                }
+                else
+                {
+                    return string.Empty;
+                }
+            }
+
+            return string.Empty;
         }
         #endregion
     }

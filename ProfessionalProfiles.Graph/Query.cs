@@ -98,6 +98,34 @@ namespace ProfessionalProfiles.Graph
         }
 
         /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="userManager"></param>
+        /// <param name="repository"></param>
+        /// <param name="apiKey"></param>
+        /// <returns></returns>
+        public async Task<ProfileSummaryResult> GetProfileSummariesAsync([Service] UserManager<Professional> userManager,
+            [Service] IRepositoryManager repository, [GlobalState] string? apiKey = "")
+        {
+            var userId = repository.User.GetLoggedInOrApiKeyUserId(apiKey!);
+
+            if (userId.IsEmpty())
+            {
+                return new ProfileSummaryResult(false, null);
+            }
+
+            var user = await userManager.FindByIdAsync(userId.ToString());
+            if (user == null)
+            {
+                return new ProfileSummaryResult(false, null);
+            }
+
+            var summary = await repository.GetProfileSummaryForMenus(user);
+
+            return new ProfileSummaryResult(true, summary);
+        }
+
+        /// <summary>
         /// Gets user's social media records
         /// </summary>
         /// <param name="userManager"></param>

@@ -77,5 +77,22 @@ namespace ProfessionalProfiles.Services.Implementations
             await scheduler.ScheduleJob(job, trigger);
             await scheduler.Start();
         }
+
+        public async Task CleanUpFirebaseStorage(bool deleteAll = false)
+        {
+            var scheduler = await _schedulerFactory.GetScheduler();
+
+            var job = JobBuilder.Create<FirebaseFilesCleanup>()
+                .UsingJobData("DeleteAll", deleteAll)
+                .WithIdentity(Guid.NewGuid().ToString())
+                .Build();
+
+            var trigger = TriggerBuilder.Create()
+                .StartNow()
+                .Build();
+
+            await scheduler.ScheduleJob(job, trigger);
+            await scheduler.Start();
+        }
     }
 }

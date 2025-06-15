@@ -1,6 +1,4 @@
-﻿using CSharpTypes.Extensions.Enumeration;
-using Microsoft.Extensions.Logging;
-using ProfessionalProfiles.Entities.Enums;
+﻿using Microsoft.Extensions.Logging;
 using ProfessionalProfiles.Services.Interfaces;
 using Quartz;
 
