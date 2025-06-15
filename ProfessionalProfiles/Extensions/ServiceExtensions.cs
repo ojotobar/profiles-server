@@ -5,6 +5,9 @@ using ProfessionalProfiles.Data.Implementations;
 using ProfessionalProfiles.Data.Interface;
 using ProfessionalProfiles.Entities.Enums;
 using ProfessionalProfiles.Entities.Models;
+using ProfessionalProfiles.Graph.Mutations;
+using ProfessionalProfiles.Graph.Queries;
+using ProfessionalProfiles.Graph;
 using ProfessionalProfiles.Services.Implementations;
 using ProfessionalProfiles.Services.Interfaces;
 using ProfessionalProfiles.Services.Jobs;
@@ -24,6 +27,36 @@ namespace ProfessionalProfiles.Extensions
                 .AddScoped<StatusChangeNotification>()
                 .AddScoped<BackgroundJobsWorker>();
         }
+
+        public static void ConfigureGraphQL(this IServiceCollection services)
+        {
+            services.AddGraphQLServer().AddAuthorization()
+                .AddQueryType<Query>()
+                    .AddType<AccountQueries>()
+                    .AddType<AuditLogQueries>()
+                    .AddType<CertificationQueries>()
+                    .AddType<EducationQueries>()
+                    .AddType<ExperienceQueries>()
+                    .AddType<FaqsQueries>()
+                    .AddType<ProfessionalSummaryQueries>()
+                    .AddType<ProfileQueries>()
+                    .AddType<ProjectQueries>()
+                    .AddType<SkillsQueries>()
+                .AddMutationType<Mutation>()
+                    .AddType<AccountMutations>()
+                    .AddType<CertificationMutations>()
+                    .AddType<EducationMutations>()
+                    .AddType<ExperienceMutations>()
+                    .AddType<FaqsMutations>()
+                    .AddType<ProfessionalSummaryMutations>()
+                    .AddType<ProfileMutations>()
+                    .AddType<ProjectMutations>()
+                    .AddType<SkillsMutations>()
+                .AddType<UploadType>()
+                .AddHttpRequestInterceptor<CustomeRequestInterceptor>()
+                .AddMutationConventions();
+        }
+
         public static void ConfigureDataAndServices(this IServiceCollection services)
         {
             services.AddScoped<IRepositoryManager, RepositoryManager>();
