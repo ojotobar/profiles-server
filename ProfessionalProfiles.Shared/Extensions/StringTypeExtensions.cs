@@ -32,6 +32,12 @@ namespace ProfessionalProfiles.Shared.Extensions
             return Convert.ToBase64String(plainTextBytes);
         }
 
+        public static string EncodeGuidAsBase64(this Guid guid)
+        {
+            var plainTextBytes = Encoding.UTF8.GetBytes(guid.ToString());
+            return Convert.ToBase64String(plainTextBytes);
+        }
+
         public static Guid DecodeBase64StringAsGuid(this string base64String)
         {
             var base64EncodedBytes = Convert.FromBase64String(base64String);

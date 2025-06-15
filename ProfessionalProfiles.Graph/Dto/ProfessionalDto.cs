@@ -1,11 +1,12 @@
 ﻿using ProfessionalProfiles.Entities.Enums;
 using ProfessionalProfiles.Entities.Models;
+using System.Runtime.ConstrainedExecution;
 
 namespace ProfessionalProfiles.Graph.Dto
 {
     public class ProfessionalDto
     {
-        public Guid Id { get; set; } 
+        public Guid Id { get; set; }
         public string FirstName { get; set; } = string.Empty;
         public string LastName { get; set; } = string.Empty;
         public EGender Gender { get; set; }
@@ -51,9 +52,13 @@ namespace ProfessionalProfiles.Graph.Dto
         }
     }
 
-    public record ProfileSummaryDto(long Education, long Experience, long Skills, long Projects, long Certifications, 
+    public record ProfileSummaryDto(long Education, long Experience, long Skills, long Projects, long Certifications,
         bool HasCareerSummary, int Progress, bool CanGenerateApiKey, string? ApiKey = "");
 
     public record DetailedProfileDto(ProfessionalDto Profile, ProfileSummaryDto ProfileSummary);
     public record SocialMediaResult(bool Success, List<SocialMedia> SocialMedia);
+    public record ProfileSummaryResult(bool Success, ProfileSummary? Summary);
+
+    public record ProfileSummary(string FirstName, string LastName, string ProfilePics, string ProfileHeading,
+        bool ShowXpMenu, bool ShowSkillMenu, bool ShowEducationMenu, bool ShowProjectMenu, bool ShowCertificationMenu, List<SocialMedia> SocialMedia);
 }

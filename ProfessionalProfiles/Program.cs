@@ -2,7 +2,6 @@ using DRY.MailJetClient.Library.Extensions;
 using Mongo.Common.MongoDB;
 using ProfessionalProfiles.Configurations;
 using ProfessionalProfiles.Extensions;
-using ProfessionalProfiles.Graph;
 
 var builder = WebApplication.CreateBuilder(args);
 AppConfigurations.ConfigureLogging("http://localhost:9200");
@@ -16,14 +15,7 @@ builder.Services.ConfigureCors();
 builder.Services.ConfigureDataAndServices();
 builder.Services.ConfigureJWT(builder.Configuration);
 builder.Services.ConfigureQuartz();
-builder.Services.AddGraphQLServer()
-    .AddAuthorization()
-    .AddQueryType<Query>()
-    .AddMutationType<Mutation>()
-    //.AddFiltering()
-    .AddType<UploadType>()
-    .AddHttpRequestInterceptor<CustomeRequestInterceptor>()
-    .AddMutationConventions();
+builder.Services.ConfigureGraphQL();
 
 var app = builder.Build();
 var logger = app.Services.GetRequiredService<ILogger<Program>>();
