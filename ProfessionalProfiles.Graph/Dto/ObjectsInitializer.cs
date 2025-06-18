@@ -49,6 +49,7 @@ namespace ProfessionalProfiles.Graph.Dto
         public static ProfessionalSummary Map(this ProfessionalSummaryInput input, ProfessionalSummary existing)
         {
             existing.Summary = input.Summary;
+            existing.Heading = input.Heading;
             existing.UpdatedOn = DateTime.UtcNow;
             return existing;
         }
@@ -80,6 +81,7 @@ namespace ProfessionalProfiles.Graph.Dto
         public static ProfessionalSummary Initialize(this ProfessionalSummaryInput input, Guid userId)
             => new()
             {
+                Heading = input.Heading,
                 Summary = input.Summary,
                 UserId = userId
             };

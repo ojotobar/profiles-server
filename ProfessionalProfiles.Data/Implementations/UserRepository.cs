@@ -26,11 +26,11 @@ namespace ProfessionalProfiles.Data.Implementations
             return GetUserId();
         }
 
-        public Guid GetLoggedInOrApiKeyUserId(string apiKey)
+        public async Task<Guid> GetLoggedInOrApiKeyUserId(string apiKey)
         {
             var userId = GetLoggedInUserId().ToGuid();
             userId = userId.IsEmpty() ?
-                StringTypeExtensions.DecodeBase64StringAsGuid(apiKey ?? string.Empty) :
+                await GetUserByApiKeyOrEmpty(apiKey) :
                 userId;
 
             return userId;
@@ -73,6 +73,23 @@ namespace ProfessionalProfiles.Data.Implementations
         {
             ClaimsPrincipal? userClaim = contextAccessor.HttpContext?.User;
             return userClaim?.FindFirstValue(ClaimTypes.NameIdentifier) ?? string.Empty;
+        }
+
+        private async Task<Guid> GetUserByApiKeyOrEmpty(string? apiKey)
+        {
+            var userId = StringTypeExtensions.DecodeBase64StringAsGuid(apiKey ?? string.Empty);
+            if (userId.IsEmpty())
+            {
+                return userId;
+            }
+
+            var user = await userManager.FindByIdAsync(userId.ToString());
+            if(user == null || user.KeyMarker == default)
+            {
+                return Guid.Empty;
+            }
+
+            return (apiKey ?? "").IsValidApiKey(userId, user.KeyMarker) ? userId : Guid.Empty;
         }
     }
 }

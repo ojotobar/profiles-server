@@ -11,6 +11,8 @@ namespace ProfessionalProfiles.Entities.Models
         public DateTime UpdatedOn { get; set; } = DateTime.UtcNow;
         public bool IsDeprecated { get; set; }
         [Required]
+        public string Heading { get; set; } = string.Empty;
+        [Required]
         public string Summary { get; set; } = string.Empty;
     }
 }
