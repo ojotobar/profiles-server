@@ -65,7 +65,7 @@ namespace ProfessionalProfiles.Graph.Queries
         public async Task<ProfessionalDto?> GetProfileAsync([Service] UserManager<Professional> userManager,
             [Service] IRepositoryManager repository, [GlobalState] string? apiKey = "")
         {
-            var userId = repository.User.GetLoggedInOrApiKeyUserId(apiKey!);
+            var userId = await repository.User.GetLoggedInOrApiKeyUserId(apiKey!);
 
             if (userId.IsEmpty())
             {
@@ -91,7 +91,7 @@ namespace ProfessionalProfiles.Graph.Queries
         public async Task<ProfileSummaryResult> GetProfileSummariesAsync([Service] UserManager<Professional> userManager,
             [Service] IRepositoryManager repository, [GlobalState] string? apiKey = "")
         {
-            var userId = repository.User.GetLoggedInOrApiKeyUserId(apiKey!);
+            var userId = await repository.User.GetLoggedInOrApiKeyUserId(apiKey!);
 
             if (userId.IsEmpty())
             {
@@ -141,9 +141,9 @@ namespace ProfessionalProfiles.Graph.Queries
         /// <param name="userManager"></param>
         /// <returns></returns>
         public async Task<ProfileSummaryDto?> GetUserSummaryAsync([Service] IRepositoryManager repository,
-            [Service] UserManager<Professional> userManager)
+            [Service] UserManager<Professional> userManager, [GlobalState] string? apiKey = "")
         {
-            var userId = repository.User.GetLoggedInOrApiKeyUserId("");
+            var userId = await repository.User.GetLoggedInOrApiKeyUserId(apiKey!);
             if (userId.IsEmpty())
             {
                 return null;
@@ -158,11 +158,16 @@ namespace ProfessionalProfiles.Graph.Queries
             return await repository.GetProfileSummary(user);
         }
 
+        /// <summary>
+        /// Gets detailed user profile records
+        /// </summary>
+        /// <param name="userManager"></param>
+        /// <param name="repository"></param>
+        /// <returns></returns>
         [Authorize]
-        public async Task<DetailedProfileDto?> GetDetailedProfileAsync([Service] UserManager<Professional> userManager,
-            [Service] IRepositoryManager repository)
+        public async Task<DetailedProfileDto?> GetDetailedProfileAsync([Service] UserManager<Professional> userManager, [Service] IRepositoryManager repository)
         {
-            var userId = repository.User.GetLoggedInOrApiKeyUserId("");
+            var userId = await repository.User.GetLoggedInOrApiKeyUserId("");
 
             if (userId.IsEmpty())
             {
@@ -177,6 +182,33 @@ namespace ProfessionalProfiles.Graph.Queries
 
             var summary = await repository.GetProfileSummary(user);
             return new DetailedProfileDto(ProfessionalDto.MapData(user)!, summary);
+        }
+
+        /// <summary>
+        /// Gets user's profile records
+        /// </summary>
+        /// <param name="userManager"></param>
+        /// <param name="repository"></param>
+        /// <param name="apiKey"></param>
+        /// <returns></returns>
+        public async Task<ProfileDto?> GetProfileRecordAsync([Service] UserManager<Professional> userManager, 
+            [Service] IRepositoryManager repository, [GlobalState] string? apiKey = "")
+        {
+            var userId = await repository.User.GetLoggedInOrApiKeyUserId(apiKey!);
+
+            if (userId.IsEmpty())
+            {
+                return new ProfileDto();
+            }
+
+            var user = await userManager.FindByIdAsync(userId.ToString());
+            if (user == null)
+            {
+                return new ProfileDto();
+            }
+
+            var summary = await repository.GetProfileSummary(user.Id);
+            return new ProfileDto(ProfessionalDto.MapData(user)!, summary, true);
         }
 
         /// <summary>

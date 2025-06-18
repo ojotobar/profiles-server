@@ -30,7 +30,7 @@ namespace ProfessionalProfiles.Graph.Extensions
             var hasSummary = await repository.Summary.HasAsync(cs => cs.UserId.Equals(user.Id) && !cs.IsDeprecated);
 
             var canGenerate = await repository.CanGenerateApiKey(user.EmailConfirmed,
-                user.Location != null, user.ProfilePicture != null, user.ResumeLink != null, user.SocialMedia.IsNotNullOrEmpty());
+                user.Location != null, !string.IsNullOrWhiteSpace(user.ProfilePicture), !string.IsNullOrWhiteSpace(user.ResumeLink), user.SocialMedia.IsNotNullOrEmpty());
 
             var apiKey = "";
             if (user.KeyMarker != default)
@@ -49,10 +49,23 @@ namespace ProfessionalProfiles.Graph.Extensions
             var hasSkills = await repository.Skill.HasAnyAsync(s => s.UserId.Equals(user.Id) && !s.IsDeprecated);
             var hasProject = await repository.Project.HasAnyAsync(p => p.UserId.Equals(user.Id) && !p.IsDeprecated);
             var hasCerts = await repository.Certification.HasAnyAsync(c => c.UserId.Equals(user.Id) && !c.IsDeprecated);
-            var hasSummary = await repository.Summary.HasAsync(cs => cs.UserId.Equals(user.Id) && !cs.IsDeprecated);
+            var summary = await repository.Summary.FindAsync(cs => cs.UserId.Equals(user.Id) && !cs.IsDeprecated);
 
-            return new ProfileSummary(user.FirstName, user.LastName, user.ProfilePicture ?? "", "", 
+            return new ProfileSummary(user.FirstName, user.LastName, user.ProfilePicture ?? "", summary?.Heading ?? "", 
                 hasXp, hasSkills, hasEducation, hasProject, hasCerts, user.SocialMedia.ToList());
+        }
+
+        public static async Task<ProfileSummaryLean> GetProfileSummary(this IRepositoryManager repository, Guid userId)
+        {
+            var educations = await repository.Education.CountAllAsync(e => e.UserId.Equals(userId) && !e.IsDeprecated);
+            var skills = await repository.Skill.FindRangeAsync(s => s.UserId.Equals(userId) && !s.IsDeprecated);
+            var projects = await repository.Project.CountAllAsync(p => p.UserId.Equals(userId) && !p.IsDeprecated);
+            var certs = await repository.Certification.CountAllAsync(c => c.UserId.Equals(userId) && !c.IsDeprecated);
+            var profileSummary = await repository.Summary.FindAsync(cs => cs.UserId.Equals(userId) && !cs.IsDeprecated);
+            var xp = await repository.WorkExperience.FindRangeAsync(we => we.UserId.Equals(userId) && !we.IsDeprecated);
+            var yearsOfXp = GetYearsOfExperience(xp);
+
+            return new ProfileSummaryLean(profileSummary?.Heading ?? "", (int)yearsOfXp, skills.OrderByDescending(s => s.Level).Select(s => s.Name).ToList(), skills.Count, educations, projects, certs);
         }
 
         public static async Task<(int Progress, bool CanGenerate)> CanGenerateApiKey(this IRepositoryManager repository,
@@ -85,43 +98,43 @@ namespace ProfessionalProfiles.Graph.Extensions
                 progress += 5;
             }
 
-            var userId = repository.User.GetLoggedInOrApiKeyUserId("");
+            var userId = await repository.User.GetLoggedInOrApiKeyUserId("");
             if (userId.IsEmpty())
             {
                 return (progress, false);
             }
 
-            var hasEducation = await repository.Education.HasAnyAsync(e => e.UserId.Equals(userId));
+            var hasEducation = await repository.Education.HasAnyAsync(e => e.UserId.Equals(userId) && !e.IsDeprecated);
             if (hasEducation)
             {
                 progress += 10;
             }
 
-            var hasExperience = await repository.WorkExperience.HasAnyAsync(xp => xp.UserId.Equals(userId));
+            var hasExperience = await repository.WorkExperience.HasAnyAsync(xp => xp.UserId.Equals(userId) && !xp.IsDeprecated);
             if (hasExperience)
             {
                 progress += 10;
             }
 
-            var hasSkills = await repository.Skill.HasAnyAsync(sk => sk.UserId.Equals(userId));
+            var hasSkills = await repository.Skill.HasAnyAsync(sk => sk.UserId.Equals(userId) && !sk.IsDeprecated);
             if (hasSkills)
             {
                 progress += 10;
             }
 
-            var hasProjects = await repository.Project.HasAnyAsync(pro => pro.UserId.Equals(userId));
+            var hasProjects = await repository.Project.HasAnyAsync(pro => pro.UserId.Equals(userId) && !pro.IsDeprecated);
             if (hasProjects)
             {
                 progress += 10;
             }
 
-            var hasCert = await repository.Certification.HasAnyAsync(cert => cert.UserId.Equals(userId));
+            var hasCert = await repository.Certification.HasAnyAsync(cert => cert.UserId.Equals(userId) && !cert.IsDeprecated);
             if (hasCert)
             {
                 progress += 10;
             }
 
-            var hasSummary = await repository.Summary.HasAsync(s => s.UserId.Equals(userId));
+            var hasSummary = await repository.Summary.HasAsync(s => s.UserId.Equals(userId) && !s.IsDeprecated);
             if (hasSummary)
             {
                 progress += 10;
@@ -234,5 +247,25 @@ namespace ProfessionalProfiles.Graph.Extensions
 
             return string.Empty;
         }
+
+        #region Private methods
+        private static double GetYearsOfExperience(List<WorkExperience>? experiences)
+        {
+            var result = 0;
+            var days = 0;
+
+            if (experiences == null || experiences.Count == 0)
+            {
+                return result;
+            }
+
+            foreach (var experience in experiences)
+            {
+                days += ((experience.EndDate ?? DateTime.UtcNow) - experience.StartDate).Days;
+            }
+
+            return Math.Round(days / 365.25);
+        }
+        #endregion
     }
 }
