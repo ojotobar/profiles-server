@@ -16,7 +16,7 @@ namespace ProfessionalProfiles.Graph.Queries
         public async Task<Certification?> GetCertificationAsync(Guid id, [Service] IRepositoryManager repository,
             [GlobalState] string? apiKey)
         {
-            var userId = repository.User.GetLoggedInOrApiKeyUserId(apiKey!);
+            var userId = await repository.User.GetLoggedInOrApiKeyUserId(apiKey!);
             if (userId.IsEmpty())
             {
                 return null;
@@ -32,10 +32,10 @@ namespace ProfessionalProfiles.Graph.Queries
         /// <param name="repository"></param>
         /// <param name="apiKey"></param>
         /// <returns></returns>
-        public IQueryable<Certification> GetCertifications([Service] IRepositoryManager repository,
+        public async Task<IQueryable<Certification>> GetCertificationsAsync([Service] IRepositoryManager repository,
             [GlobalState] string? apiKey)
         {
-            var userId = repository.User.GetLoggedInOrApiKeyUserId(apiKey!);
+            var userId = await repository.User.GetLoggedInOrApiKeyUserId(apiKey!);
             if (userId.IsEmpty())
             {
                 return new List<Certification>().AsQueryable();

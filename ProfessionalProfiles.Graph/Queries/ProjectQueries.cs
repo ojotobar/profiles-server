@@ -16,7 +16,7 @@ namespace ProfessionalProfiles.Graph.Queries
         public async Task<Project?> GetProjectAsync(Guid id, [Service] IRepositoryManager repository,
             [GlobalState] string? apiKey)
         {
-            var userId = repository.User.GetLoggedInOrApiKeyUserId(apiKey!);
+            var userId = await repository.User.GetLoggedInOrApiKeyUserId(apiKey!);
             if (userId.IsEmpty())
             {
                 return null;
@@ -32,10 +32,10 @@ namespace ProfessionalProfiles.Graph.Queries
         /// <param name="repository"></param>
         /// <param name="apiKey"></param>
         /// <returns></returns>
-        public IQueryable<Project> GetProjects([Service] IRepositoryManager repository,
+        public async Task<IQueryable<Project>> GetProjects([Service] IRepositoryManager repository,
             [GlobalState] string? apiKey)
         {
-            var userId = repository.User.GetLoggedInOrApiKeyUserId(apiKey!);
+            var userId = await repository.User.GetLoggedInOrApiKeyUserId(apiKey!);
             if (userId.IsEmpty())
             {
                 return new List<Project>().AsQueryable();

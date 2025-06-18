@@ -13,10 +13,10 @@ namespace ProfessionalProfiles.Graph.Queries
         /// <param name="repository"></param>
         /// <param name="apiKey"></param>
         /// <returns></returns>
-        public IQueryable<Education> GetEducations([Service] IRepositoryManager repository,
+        public async Task<IQueryable<Education>> GetEducations([Service] IRepositoryManager repository,
             [GlobalState] string? apiKey = "")
         {
-            var userId = repository.User.GetLoggedInOrApiKeyUserId(apiKey!);
+            var userId = await repository.User.GetLoggedInOrApiKeyUserId(apiKey!);
             if (userId.IsEmpty())
             {
                 return new List<Education>().AsQueryable();
@@ -37,7 +37,7 @@ namespace ProfessionalProfiles.Graph.Queries
         public async Task<Education?> GetEducationAsync(Guid id, [Service] IRepositoryManager repository,
             [GlobalState] string? apiKey = "")
         {
-            var userId = repository.User.GetLoggedInOrApiKeyUserId(apiKey!);
+            var userId = await repository.User.GetLoggedInOrApiKeyUserId(apiKey!);
             if (userId.IsEmpty())
             {
                 return null;
