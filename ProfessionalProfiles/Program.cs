@@ -29,8 +29,11 @@ app.MapGraphQL("/profilesql");
 app.UseGraphQLVoyager();
 app.MapGet("/", async context =>
 {
+    var html = await File.ReadAllTextAsync("wwwroot/ProfilesQL.html");
+    html = html.Replace("{{VERSION_TAG}}", BuildVariables.Version);
+
     context.Response.ContentType = "text/html";
-    await context.Response.SendFileAsync("wwwroot/ProfilesQL.html");
+    await context.Response.WriteAsync(html);
 });
 
 app.Run();
