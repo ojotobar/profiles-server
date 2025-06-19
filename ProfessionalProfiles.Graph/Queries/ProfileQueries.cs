@@ -253,5 +253,32 @@ namespace ProfessionalProfiles.Graph.Queries
                 .MapAsync(userManager))
                 .OrderByDescending(u => u.CreatedOn);
         }
+
+        /// <summary>
+        /// Get user's profile photo file object
+        /// </summary>
+        /// <param name="imageUrl"></param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentException"></exception>
+        public async Task<ProfileImageResult> GetProfileImageAsync([Service] UserManager<Professional> userManager,
+            [Service] IRepositoryManager repository, [GlobalState] string? apiKey = "")
+        {
+            var userId = await repository.User.GetLoggedInOrApiKeyUserId(apiKey!);
+
+            if (userId.IsEmpty())
+            {
+                throw new Exception("Invalid API Key");
+            }
+
+            var user = await userManager.FindByIdAsync(userId.ToString()) ?? throw new Exception("User not found");
+
+            if (string.IsNullOrWhiteSpace(user.ProfilePicture))
+                throw new ArgumentException("Image URL is required");
+
+            using var httpClient = new HttpClient();
+            var imageBytes = await httpClient.GetByteArrayAsync(user.ProfilePicture);
+
+            return new ProfileImageResult("profile-pic.png", "image/png", Convert.ToBase64String(imageBytes));
+        }
     }
 }

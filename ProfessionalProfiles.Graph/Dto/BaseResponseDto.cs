@@ -12,4 +12,5 @@ namespace ProfessionalProfiles.Graph.Dto
     public record AppRoleDto(Guid Id, string Name, long Users);
     public record AppRoleInput(Guid Id, string Name);
     public record FirebaseCleanupInput(bool DeleteAll = false);
+    public record ProfileImageResult(string Name, string ContentType, string Base64);
 }
