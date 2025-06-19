@@ -10,9 +10,9 @@ namespace ProfessionalProfiles.Entities.Enums
         OrdinaryDiploma,
         [Description("HND")]
         HigherDiploma,
-        [Description("Bachelor")]
+        [Description("Bachelors")]
         Bachelor,
-        [Description("Master")]
+        [Description("Masters")]
         Masters,
         [Description("Ph.D")]
         Doctorate

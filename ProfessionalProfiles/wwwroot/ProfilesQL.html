@@ -107,9 +107,19 @@
                 color: var(--accent);
                 font-weight: bold;
             }
+            .version{
+                position: absolute;
+                top: 1rem;
+                left: 1rem;
+                font-weight: bold;
+                color: var(--accent);
+                margin: 0;
+                padding: 0;
+            }
         </style>
     </head>
     <body>
+        <p class="version">{{VERSION_TAG}}</p>
         <button class="toggle-theme" onclick="toggleTheme()">Toggle Theme</button>
         <div class="logo">
             <!-- Save as wwwroot/logo.svg -->

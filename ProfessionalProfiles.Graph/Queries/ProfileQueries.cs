@@ -212,6 +212,32 @@ namespace ProfessionalProfiles.Graph.Queries
         }
 
         /// <summary>
+        /// Gets the user's contact information
+        /// </summary>
+        /// <param name="userManager"></param>
+        /// <param name="repository"></param>
+        /// <param name="apiKey"></param>
+        /// <returns></returns>
+        public async Task<ContactInfo?> GetUserContactInfoAsync([Service] UserManager<Professional> userManager,
+            [Service] IRepositoryManager repository, [GlobalState] string? apiKey = "")
+        {
+            var userId = await repository.User.GetLoggedInOrApiKeyUserId(apiKey!);
+
+            if (userId.IsEmpty())
+            {
+                return new ContactInfo();
+            }
+
+            var user = await userManager.FindByIdAsync(userId.ToString());
+            if (user == null)
+            {
+                return new ContactInfo();
+            }
+
+            return new ContactInfo(user.Email ?? "", user.PhoneNumber ?? "", [.. user.SocialMedia], user.Location, true);
+        }
+
+        /// <summary>
         /// Gets a paginated list of users
         /// </summary>
         /// <param name="userManager"></param>

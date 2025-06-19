@@ -62,6 +62,7 @@ namespace ProfessionalProfiles.Graph.Dto
     public record ProfileSummary(string FirstName, string LastName, string ProfilePics, string ProfileHeading,
         bool ShowXpMenu, bool ShowSkillMenu, bool ShowEducationMenu, bool ShowProjectMenu, bool ShowCertificationMenu, List<SocialMedia> SocialMedia);
 
+    public record ContactInfo(string Email = "", string PhoneNumber = "", List<SocialMedia>? SocialMedia = null, ProfessionalLocation? Location = null, bool Success = false);
     public record ProfileDto(ProfessionalDto? Profile = null, ProfileSummaryLean? Summary = null, bool Success = false);
     public record ProfileSummaryLean(string ProfileHeading, int YearsOfExperience, List<string> skills, long SkillCount, long EducationCount, long ProjectCount, long CertificationCount);
 }
