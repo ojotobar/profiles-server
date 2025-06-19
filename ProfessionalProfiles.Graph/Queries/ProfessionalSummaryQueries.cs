@@ -15,9 +15,9 @@ namespace ProfessionalProfiles.Graph.Queries
         /// <param name="apiKey"></param>
         /// <returns></returns>
         public async Task<ProfessionalSummary?> GetProfessionalSummaryByIdAsync(Guid id, [Service] IRepositoryManager repository,
-            [GlobalState] string? apiKey)
+            [GlobalState] string? apiKey, [GlobalState] string? clientTag)
         {
-            var userId = await repository.User.GetLoggedInOrApiKeyUserId(apiKey!);
+            var userId = await repository.User.GetLoggedInOrApiKeyUserId(apiKey!, clientTag!);
             if (userId.IsEmpty())
             {
                 return null;
@@ -34,9 +34,9 @@ namespace ProfessionalProfiles.Graph.Queries
         /// <param name="apiKey"></param>
         /// <returns></returns>
         public async Task<ProfessionalSummary?> GetProfessionalSummaryAsync([Service] IRepositoryManager repository,
-            [GlobalState] string? apiKey)
+            [GlobalState] string? apiKey, [GlobalState] string? clientTag)
         {
-            var userId = await repository.User.GetLoggedInOrApiKeyUserId(apiKey!);
+            var userId = await repository.User.GetLoggedInOrApiKeyUserId(apiKey!, clientTag!);
             if (userId.IsEmpty())
             {
                 return null;
