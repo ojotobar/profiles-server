@@ -12,7 +12,10 @@ namespace ProfessionalProfiles.Extensions
             OperationRequestBuilder requestBuilder, CancellationToken cancellationToken)
         {
             context.Request.Headers.TryGetValue("X-PPAPI-KEY", out var key);
+            context.Request.Headers.TryGetValue("X-CLIENT-TAG", out var appTag);
+
             requestBuilder.SetGlobalState("apiKey", (string?)key);
+            requestBuilder.SetGlobalState("clientTag", (string?)appTag);
 
             context.Request.Headers.TryGetValue("Origin", out var origin);
             requestBuilder.SetGlobalState("origin", (string?)origin);

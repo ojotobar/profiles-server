@@ -14,9 +14,10 @@ namespace ProfessionalProfiles.Graph.Queries
         /// <param name="repository"></param>
         /// <param name="apiKey"></param>
         /// <returns></returns>
-        public async Task<IQueryable<Skill>> GetSkills([Service] IRepositoryManager repository, [GlobalState] string? apiKey = "")
+        public async Task<IQueryable<Skill>> GetSkills([Service] IRepositoryManager repository, 
+            [GlobalState] string? apiKey = "", [GlobalState] string? clientTag = "")
         {
-            var userId = await repository.User.GetLoggedInOrApiKeyUserId(apiKey!);
+            var userId = await repository.User.GetLoggedInOrApiKeyUserId(apiKey!, clientTag!);
 
             if (userId.IsEmpty())
             {
@@ -36,9 +37,10 @@ namespace ProfessionalProfiles.Graph.Queries
         /// <param name="repository"></param>
         /// <param name="apiKey"></param>
         /// <returns></returns>
-        public async Task<Skill?> GetSkillAsync(Guid id, [Service] IRepositoryManager repository, [GlobalState] string? apiKey = "")
+        public async Task<Skill?> GetSkillAsync(Guid id, [Service] IRepositoryManager repository, 
+            [GlobalState] string? apiKey = "", [GlobalState] string? clientTag = "")
         {
-            var userId = await repository.User.GetLoggedInOrApiKeyUserId(apiKey!);
+            var userId = await repository.User.GetLoggedInOrApiKeyUserId(apiKey!, clientTag!);
 
             if (userId.IsEmpty())
             {

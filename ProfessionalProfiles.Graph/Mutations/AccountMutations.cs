@@ -10,6 +10,7 @@ using ProfessionalProfiles.Entities.Models;
 using ProfessionalProfiles.Graph.Account;
 using ProfessionalProfiles.Graph.Common;
 using ProfessionalProfiles.Graph.Dto;
+using ProfessionalProfiles.Graph.General;
 using ProfessionalProfiles.Services.Implementations;
 using ProfessionalProfiles.Services.Interfaces;
 
@@ -484,6 +485,34 @@ namespace ProfessionalProfiles.Graph.Mutations
             }
 
             return new Payload($"The role, {role.Name} successfully deleted.", true);
+        }
+
+        /// <summary>
+        /// Notify users of new updates to the portfolio client they are using.
+        /// </summary>
+        /// <param name="input"></param>
+        /// <param name="userManager"></param>
+        /// <param name="service"></param>
+        /// <returns></returns>
+        [Authorize(Roles = ["Admin"])]
+        public async Task<Payload> SendNewVersionNotificationAsync(NewVersionNotificationInput input, 
+            [Service] UserManager<Professional> userManager,
+            [Service] IServiceManager service)
+        {
+            ArgumentNullException.ThrowIfNull(input);
+            if (string.IsNullOrEmpty(input.Version) || 
+                string.IsNullOrEmpty(input.Tag) || string.IsNullOrEmpty(input.Env))
+            {
+                return new Payload("All the input fields are required.");
+            }
+
+            var users = userManager.Users
+                .Where(u => u.Status == EStatus.Active && !u.IsDeprecated 
+                    && u.LatestUsedClientTag.Equals(input.Tag) && u.KeyMarker != default)
+                .ToList();
+
+            await service.Email.SendDeployNotificationEmailAsync(users, input.Tag);
+            return new Payload($"New update alert for {users.Count} users started.", true);
         }
     }
 }
