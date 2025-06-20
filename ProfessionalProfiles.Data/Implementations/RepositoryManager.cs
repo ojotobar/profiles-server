@@ -29,6 +29,8 @@ namespace ProfessionalProfiles.Data.Implementations
             => new FaqsRepository(settings));
         private readonly Lazy<IAuditRepository> auditRepository = new(()
             => new AuditRepository(settings));
+        private readonly Lazy<IPortfolioVersionRespository> portfolioVersionRespository = new(()
+            => new PortfolioVersionRespository(settings));
 
         public IEducationRepository Education => educationRepository.Value;
         public IUserRepository User => userRepository.Value;
@@ -40,5 +42,6 @@ namespace ProfessionalProfiles.Data.Implementations
         public IProfessionalSummaryRepository Summary => professionalSummaryRepository.Value;
         public IFaqsRepository Faqs => faqsRepository.Value;
         public IAuditRepository Audit => auditRepository.Value;
+        public IPortfolioVersionRespository PortfolioVersion => portfolioVersionRespository.Value;
     }
 }

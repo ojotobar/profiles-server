@@ -12,5 +12,6 @@
         IProfessionalSummaryRepository Summary { get; }
         IFaqsRepository Faqs { get; }
         IAuditRepository Audit { get; }
+        IPortfolioVersionRespository PortfolioVersion { get; }
     }
 }

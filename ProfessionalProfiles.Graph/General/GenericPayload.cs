@@ -11,5 +11,5 @@ namespace ProfessionalProfiles.Graph.General
         }
     }
 
-    public record NewVersionNotificationInput(string Version, string Tag, string Env);
+    public record NewVersionNotificationInput(string Version, string Tag, string Env, bool IsPremium = false);
 }
