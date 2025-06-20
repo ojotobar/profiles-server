@@ -17,7 +17,7 @@ namespace ProfessionalProfiles.Graph.Queries
         [Authorize(Roles = ["Admin"])]
         public async Task<PortfolioVersion?> GetPortfolioVersionAsync(Guid id, [Service] IRepositoryManager repository)
         {
-            var userId = await repository.User.GetLoggedInOrApiKeyUserId("");
+            var userId = await repository.User.GetLoggedInOrApiKeyUserId();
             if (userId.IsEmpty())
             {
                 return null;

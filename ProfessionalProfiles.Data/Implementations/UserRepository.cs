@@ -26,11 +26,11 @@ namespace ProfessionalProfiles.Data.Implementations
             return GetUserId();
         }
 
-        public async Task<Guid> GetLoggedInOrApiKeyUserId(string apiKey, string appTag = "")
+        public async Task<Guid> GetLoggedInOrApiKeyUserId(ApiAccessInput? apiAccessInput = null)
         {
             var userId = GetLoggedInUserId().ToGuid();
             userId = userId.IsEmpty() ?
-                await GetUserByApiKeyOrEmpty(apiKey, appTag) :
+                await GetUserByApiKeyOrEmpty(apiAccessInput) :
                 userId;
 
             return userId;
@@ -75,27 +75,32 @@ namespace ProfessionalProfiles.Data.Implementations
             return userClaim?.FindFirstValue(ClaimTypes.NameIdentifier) ?? string.Empty;
         }
 
-        private async Task<Guid> GetUserByApiKeyOrEmpty(string? apiKey, string imageTag = "")
+        private async Task<Guid> GetUserByApiKeyOrEmpty(ApiAccessInput? apiAccessInput)
         {
-            var userId = StringTypeExtensions.DecodeBase64StringAsGuid(apiKey ?? string.Empty);
+            if(apiAccessInput == null)
+            {
+                return Guid.Empty;
+            }
+
+            var userId = StringTypeExtensions.DecodeBase64StringAsGuid(apiAccessInput.ApiKey);
             if (userId.IsEmpty())
             {
                 return userId;
             }
 
             var user = await userManager.FindByIdAsync(userId.ToString());
-            if(user == null || user.KeyMarker == default)
+            if(user == null || user.KeyMarker == default || (!user.IsPremium && apiAccessInput.IsPremium))
             {
                 return Guid.Empty;
             }
 
-            if(!string.IsNullOrWhiteSpace(imageTag) && !user.LatestUsedClientTag.Equals(imageTag))
+            if(!string.IsNullOrWhiteSpace(apiAccessInput.Tag) && !user.LatestUsedClientTag.Equals(apiAccessInput.Tag))
             {
-                user.LatestUsedClientTag = imageTag;
+                user.LatestUsedClientTag = apiAccessInput.Tag;
                 await userManager.UpdateAsync(user);
             }
 
-            return (apiKey ?? "").IsValidApiKey(userId, user.KeyMarker) ? userId : Guid.Empty;
+            return (apiAccessInput.ApiKey ?? "").IsValidApiKey(userId, user.KeyMarker) ? userId : Guid.Empty;
         }
     }
 }

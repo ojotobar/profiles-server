@@ -14,10 +14,10 @@ namespace ProfessionalProfiles.Graph.Queries
         /// <param name="repository"></param>
         /// <param name="apiKey"></param>
         /// <returns></returns>
-        public async Task<IQueryable<Skill>> GetSkills([Service] IRepositoryManager repository, 
-            [GlobalState] string? apiKey = "", [GlobalState] string? clientTag = "")
+        public async Task<IQueryable<Skill>> GetSkills([Service] IRepositoryManager repository,
+            [GlobalState] ApiAccessInput apiAccessInput)
         {
-            var userId = await repository.User.GetLoggedInOrApiKeyUserId(apiKey!, clientTag!);
+            var userId = await repository.User.GetLoggedInOrApiKeyUserId(apiAccessInput);
 
             if (userId.IsEmpty())
             {
@@ -37,10 +37,10 @@ namespace ProfessionalProfiles.Graph.Queries
         /// <param name="repository"></param>
         /// <param name="apiKey"></param>
         /// <returns></returns>
-        public async Task<Skill?> GetSkillAsync(Guid id, [Service] IRepositoryManager repository, 
-            [GlobalState] string? apiKey = "", [GlobalState] string? clientTag = "")
+        public async Task<Skill?> GetSkillAsync(Guid id, [Service] IRepositoryManager repository,
+            [GlobalState] ApiAccessInput apiAccessInput)
         {
-            var userId = await repository.User.GetLoggedInOrApiKeyUserId(apiKey!, clientTag!);
+            var userId = await repository.User.GetLoggedInOrApiKeyUserId(apiAccessInput);
 
             if (userId.IsEmpty())
             {
@@ -58,7 +58,7 @@ namespace ProfessionalProfiles.Graph.Queries
         [Authorize]
         public async Task<int> GetSkillsCountAsync([Service] IRepositoryManager repository)
         {
-            var userId = await repository.User.GetLoggedInOrApiKeyUserId("");
+            var userId = await repository.User.GetLoggedInOrApiKeyUserId();
 
             if (userId.IsEmpty())
             {
