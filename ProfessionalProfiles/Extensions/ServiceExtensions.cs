@@ -42,6 +42,7 @@ namespace ProfessionalProfiles.Extensions
                     .AddType<ProfileQueries>()
                     .AddType<ProjectQueries>()
                     .AddType<SkillsQueries>()
+                    .AddType<PortfolioVersionQueries>()
                 .AddMutationType<Mutation>()
                     .AddType<AccountMutations>()
                     .AddType<CertificationMutations>()
@@ -52,6 +53,7 @@ namespace ProfessionalProfiles.Extensions
                     .AddType<ProfileMutations>()
                     .AddType<ProjectMutations>()
                     .AddType<SkillsMutations>()
+                    .AddType<PortfolioVersionMutations>()
                 .AddType<UploadType>()
                 .AddHttpRequestInterceptor<CustomeRequestInterceptor>()
                 .AddMutationConventions();
