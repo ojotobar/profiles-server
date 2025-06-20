@@ -2,47 +2,45 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Portfolio ({{tag}}) Update Available</title>
+    <title>🚀 Portfolio ({{tag}}) Update Available</title>
     <style>
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            color: #333;
-            background-color: #f9f9f9;
+            font-family: Arial, sans-serif;
+            background-color: #f4f6f8;
             margin: 0;
-            padding: 2rem;
+            padding: 0;
         }
 
         .container {
             max-width: 600px;
-            background: #fff;
-            margin: auto;
+            margin: 40px auto;
+            background-color: #ffffff;
+            padding: 30px;
             border-radius: 8px;
-            padding: 2rem;
-            box-shadow: 0 0 10px rgba(0,0,0,0.05);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
         }
 
-        h2 {
-            color: #198754;
+        h1 {
+            color: #2b2d42;
         }
 
-        code {
-            background: #f3f3f3;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-family: monospace;
+        p {
+            color: #444;
+            line-height: 1.6;
         }
 
         pre {
-            background: #f3f3f3;
-            padding: 1rem;
-            border-radius: 6px;
+            background-color: #f0f0f0;
+            padding: 12px;
+            border-radius: 4px;
             overflow-x: auto;
+            font-family: monospace;
         }
 
         .footer {
-            margin-top: 2rem;
+            margin-top: 30px;
             font-size: 0.9em;
-            color: #666;
+            color: #888;
         }
     </style>
 </head>
@@ -60,7 +58,7 @@
             To ensure you're always running the latest stable version with minimal maintenance, we recommend deploying using the <code>{{tag}}</code> tag.
         </p>
 
-        <hr>
+        <p>To ensure you're always running the latest stable version with minimal maintenance, we recommend deploying using the <code>{{tag}}</code> tag.</p>
 
         <h3>🔄 How to Stay Updated</h3>
 
@@ -69,29 +67,19 @@
         </p>
 
         <pre>
-            <code>
 docker pull blueclikk/portfolio:{{tag}}
 docker stop your-container
 docker rm your-container
 docker run -d --name your-container blueclikk/portfolio:{{tag}}
-            </code>
     </pre>
 
-        <p>
-            This way, you’ll always get the newest version whenever it’s released — no manual tag updates needed!
-        </p>
+        <p>This way, you’ll always get the newest version whenever it’s released — no manual tag updates needed!</p>
 
-        <p>
-            We strictly encourage you to update to <code>{{tag}}</code> for a more streamlined experience.
-        </p>
+        <p>We <strong>strictly encourage</strong> you to update to <code>{{tag}}</code> for a more streamlined experience.</p>
 
-        <p>
-            If you have any questions, reply to this message or check our <a href="https://profile-host.onrender.com/docs/v1">deployment guide</a>.
-        </p>
+        <p>If you have any questions, reply to this message or check our deployment guide in the documentation.</p>
 
-        <div class="footer">
-            — The Profile Host Team
-        </div>
+        <p class="footer">— The Profile Host Team</p>
     </div>
 </body>
 </html>
