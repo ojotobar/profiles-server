@@ -10,4 +10,6 @@ namespace ProfessionalProfiles.Graph.General
             return new GenericPayload { Message = message, StatusCode = code, IsSuccessful = isSuccess };
         }
     }
+
+    public record NewVersionNotificationInput(string Version, string Tag, string Env);
 }

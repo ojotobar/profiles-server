@@ -10,10 +10,10 @@ namespace ProfessionalProfiles.Services.Implementations
 {
     public class ServiceManager(IMailjetClientService mailjet, IRepositoryManager repository,
         UserManager<Professional> userManager, SignInManager<Professional> signInManager,
-        IConfiguration configuration, ILogger<FirebaseService> firebaseLogger) : IServiceManager
+        IConfiguration configuration, ILogger<FirebaseService> firebaseLogger, BackgroundJobsWorker jobsWorker) : IServiceManager
     {
         private readonly Lazy<IEmailService> _mailjetService = new(() 
-            => new EmailService(mailjet, repository, userManager));
+            => new EmailService(mailjet, repository, userManager, jobsWorker));
         private readonly Lazy<IUserService> _userService = new(()
             => new UserService(userManager, signInManager, configuration));
         private readonly Lazy<IFirebaseService> _firebaseService = new(()
