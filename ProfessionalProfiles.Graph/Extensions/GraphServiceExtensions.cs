@@ -98,7 +98,7 @@ namespace ProfessionalProfiles.Graph.Extensions
                 progress += 5;
             }
 
-            var userId = await repository.User.GetLoggedInOrApiKeyUserId("");
+            var userId = await repository.User.GetLoggedInOrApiKeyUserId();
             if (userId.IsEmpty())
             {
                 return (progress, false);

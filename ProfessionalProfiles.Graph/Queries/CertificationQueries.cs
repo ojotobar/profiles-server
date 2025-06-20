@@ -1,6 +1,7 @@
 ﻿using CSharpTypes.Extensions.Guid;
 using ProfessionalProfiles.Data.Interface;
 using ProfessionalProfiles.Entities.Models;
+using ProfessionalProfiles.Graph.Dto;
 
 namespace ProfessionalProfiles.Graph.Queries
 {
@@ -14,9 +15,9 @@ namespace ProfessionalProfiles.Graph.Queries
         /// <param name="apiKey"></param>
         /// <returns></returns>
         public async Task<Certification?> GetCertificationAsync(Guid id, [Service] IRepositoryManager repository,
-            [GlobalState] string? apiKey, [GlobalState] string? clientTag)
+            [GlobalState] ApiAccessInput apiAccessInput)
         {
-            var userId = await repository.User.GetLoggedInOrApiKeyUserId(apiKey!, clientTag!);
+            var userId = await repository.User.GetLoggedInOrApiKeyUserId(apiAccessInput);
             if (userId.IsEmpty())
             {
                 return null;
@@ -33,9 +34,9 @@ namespace ProfessionalProfiles.Graph.Queries
         /// <param name="apiKey"></param>
         /// <returns></returns>
         public async Task<IQueryable<Certification>> GetCertificationsAsync([Service] IRepositoryManager repository,
-            [GlobalState] string? apiKey, [GlobalState] string? clientTag)
+            [GlobalState] ApiAccessInput apiAccessInput)
         {
-            var userId = await repository.User.GetLoggedInOrApiKeyUserId(apiKey!, clientTag!);
+            var userId = await repository.User.GetLoggedInOrApiKeyUserId(apiAccessInput);
             if (userId.IsEmpty())
             {
                 return new List<Certification>().AsQueryable();
