@@ -26,7 +26,7 @@ namespace ProfessionalProfiles.Graph.Mutations
         [Authorize]
         public async Task<Payload> AddSkillsAsync(List<SkillInput> inputs, IRepositoryManager repository)
         {
-            var userId = await repository.User.GetLoggedInOrApiKeyUserId("");
+            var userId = await repository.User.GetLoggedInOrApiKeyUserId();
             if (userId.IsEmpty())
             {
                 return new Payload("Access denied!!!");
