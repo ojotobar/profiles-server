@@ -3,18 +3,17 @@ using ProfessionalProfiles.Entities.Models;
 using ProfessionalProfiles.Services.Interfaces;
 using ProfessionalProfiles.Services.Jobs;
 using Quartz;
+using System.Text.Json;
 
 namespace ProfessionalProfiles.Services.Implementations
 {
     public class BackgroundJobsWorker
     {
         private readonly ISchedulerFactory _schedulerFactory;
-        private readonly IServiceManager service;
 
-        public BackgroundJobsWorker(ISchedulerFactory schedulerFactory, IServiceManager service)
+        public BackgroundJobsWorker(ISchedulerFactory schedulerFactory)
         {
             _schedulerFactory = schedulerFactory;
-            this.service = service;
         }
 
         public async Task LogAuditAsync(AuditLog auditLog)
@@ -84,6 +83,26 @@ namespace ProfessionalProfiles.Services.Implementations
 
             var job = JobBuilder.Create<FirebaseFilesCleanup>()
                 .UsingJobData("DeleteAll", deleteAll)
+                .WithIdentity(Guid.NewGuid().ToString())
+                .Build();
+
+            var trigger = TriggerBuilder.Create()
+                .StartNow()
+                .Build();
+
+            await scheduler.ScheduleJob(job, trigger);
+            await scheduler.Start();
+        }
+
+        public async Task SendNewDeploymentNofication(Dictionary<string, string> nameAndEmailMap, string html, string subject)
+        {
+            var scheduler = await _schedulerFactory.GetScheduler();
+            var dictJson = JsonSerializer.Serialize(nameAndEmailMap);
+
+            var job = JobBuilder.Create<NewDeployNotificationJob>()
+                .UsingJobData("Message", html)
+                .UsingJobData("EmailAndNameMap", dictJson)
+                .UsingJobData("Subject", subject)
                 .WithIdentity(Guid.NewGuid().ToString())
                 .Build();
 

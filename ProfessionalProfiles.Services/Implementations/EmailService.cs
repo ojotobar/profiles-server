@@ -13,13 +13,15 @@ namespace ProfessionalProfiles.Services.Implementations
         private readonly IMailjetClientService mailJet;
         private readonly IRepositoryManager repository;
         private readonly UserManager<Professional> userManager;
+        private readonly BackgroundJobsWorker jobsWorker;
 
         public EmailService(IMailjetClientService mailJet, IRepositoryManager repository,
-            UserManager<Professional> userManager)
+            UserManager<Professional> userManager, BackgroundJobsWorker jobsWorker)
         {
             this.mailJet = mailJet;
             this.repository = repository;
             this.userManager = userManager;
+            this.jobsWorker = jobsWorker;
         }
 
         public async Task<bool> SendAccountConfirmationEmail(Professional user, string origin)
@@ -89,6 +91,21 @@ namespace ProfessionalProfiles.Services.Implementations
             return await mailJet.SendAsync(user.Email!, message, "Reset Your Password");
         }
 
+        public async Task SendDeployNotificationEmailAsync(List<Professional>? users, string tag)
+        {
+            if(users == null || users.Count <= 0)
+            {
+                return;
+            }
+
+            var dictionary = users.ToDictionary(user => user.Email, user => user.FirstName);
+            var template = GetNewDeploymentTempltate(tag);
+            if (!string.IsNullOrWhiteSpace(template) && dictionary != null)
+            {
+                await jobsWorker.SendNewDeploymentNofication(dictionary, template, $"Portfolio ({tag}) Update Available");
+            }
+        }
+
         #region Get Template Section
         private string GetRootTempltate(string origin)
         {
@@ -104,6 +121,23 @@ namespace ProfessionalProfiles.Services.Implementations
             var msgBody = body.Replace("[[company_name]]", "Pro-files").
                 Replace("[[base_url]]", origin).
                 Replace("[[curr_year]]", DateTime.UtcNow.Year.ToString());
+
+            return msgBody;
+        }
+
+        private string GetNewDeploymentTempltate(string tag)
+        {
+            string body = string.Empty;
+            var folderName = System.IO.Path.Combine("wwwroot", "Templates", "NewDeployment.html");
+            var filepath = System.IO.Path.Combine(Directory.GetCurrentDirectory(), folderName);
+
+            if (File.Exists(filepath))
+                body = File.ReadAllText(filepath);
+            else
+                return body;
+
+            var msgBody = body.
+                Replace("{{tag}}", tag);
 
             return msgBody;
         }
