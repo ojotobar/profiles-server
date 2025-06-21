@@ -10,7 +10,6 @@ using ProfessionalProfiles.Entities.Models;
 using ProfessionalProfiles.Graph.Account;
 using ProfessionalProfiles.Graph.Common;
 using ProfessionalProfiles.Graph.Dto;
-using ProfessionalProfiles.Graph.General;
 using ProfessionalProfiles.Services.Implementations;
 using ProfessionalProfiles.Services.Interfaces;
 

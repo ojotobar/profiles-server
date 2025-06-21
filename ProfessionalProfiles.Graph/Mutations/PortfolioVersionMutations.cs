@@ -7,7 +7,6 @@ using ProfessionalProfiles.Entities.Models;
 using ProfessionalProfiles.Graph.Common;
 using ProfessionalProfiles.Graph.General;
 using ProfessionalProfiles.Services.Interfaces;
-using ProfessionalProfiles.Services.Jobs;
 
 namespace ProfessionalProfiles.Graph.Mutations
 {
