@@ -1,3 +1,4 @@
+using Cloudtenary.Extensions;
 using DRY.MailJetClient.Library.Extensions;
 using Mongo.Common.MongoDB;
 using ProfessionalProfiles.Configurations;
@@ -16,6 +17,7 @@ builder.Services.ConfigureDataAndServices();
 builder.Services.ConfigureJWT(builder.Configuration);
 builder.Services.ConfigureQuartz();
 builder.Services.ConfigureGraphQL();
+builder.Services.AddCloudtenary(builder.Configuration);
 
 var app = builder.Build();
 var logger = app.Services.GetRequiredService<ILogger<Program>>();

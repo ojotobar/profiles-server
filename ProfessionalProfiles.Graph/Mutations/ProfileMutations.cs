@@ -13,6 +13,7 @@ using ProfessionalProfiles.Graph.Validations;
 using ProfessionalProfiles.Services.Implementations;
 using ProfessionalProfiles.Services.Interfaces;
 using ProfessionalProfiles.Graph.Extensions;
+using Cloudtenary;
 
 namespace ProfessionalProfiles.Graph.Mutations
 {
@@ -125,7 +126,7 @@ namespace ProfessionalProfiles.Graph.Mutations
         [Authorize]
         public async Task<Payload> UploadProfilePhotoAsync([Service] UserManager<Professional> userManager,
             [Service] IRepositoryManager repository, [Service] IServiceManager service, IFile file,
-            [Service] BackgroundJobsWorker auditLogger, [GlobalState] AuditLog auditLog)
+            [Service] BackgroundJobsWorker auditLogger, [GlobalState] AuditLog auditLog, ICloudtenary cloudtenary)
         {
             var imageValidationResult = file.ValidateImageFile();
             if (!imageValidationResult.Payload.IsSuccessful)
@@ -141,12 +142,12 @@ namespace ProfessionalProfiles.Graph.Mutations
             }
 
             var user = userValidationResult.User;
-            var fileName = user.GetFileName(file, ECloudFolder.ProfilePics);
             await using Stream stream = file.OpenReadStream();
-            var uploadResult = await service.Firebase.UploadFileAsync(stream, ECloudFolder.ProfilePics, fileName, CancellationToken.None);
-            if (uploadResult.Success)
+            var uploadResult = await cloudtenary.UploadImageAsync(userId.Replace("-", ""), file.Name, stream, 350, 350);
+            if (uploadResult != null)
             {
-                user.ProfilePicture = uploadResult.Link;
+                user.ProfilePicturePublicId = uploadResult.PublicId;
+                user.ProfilePicture = uploadResult.Url;
                 await userManager.UpdateAsync(user);
                 if (auditLog != null)
                 {
@@ -173,7 +174,7 @@ namespace ProfessionalProfiles.Graph.Mutations
         [Authorize]
         public async Task<Payload> UploadResumeAsync([Service] UserManager<Professional> userManager,
             [Service] IRepositoryManager repository, [Service] IServiceManager service, IFile file,
-            [Service] BackgroundJobsWorker auditLogger, [GlobalState] AuditLog auditLog)
+            [Service] BackgroundJobsWorker auditLogger, [GlobalState] AuditLog auditLog, ICloudtenary cloudtenary)
         {
             var imageValidationResult = file.ValidateDocFiles();
             if (!imageValidationResult.Payload.IsSuccessful)
@@ -189,12 +190,12 @@ namespace ProfessionalProfiles.Graph.Mutations
             }
 
             var user = userValidationResult.User;
-            var fileName = user.GetFileName(file, ECloudFolder.Resume);
             await using Stream stream = file.OpenReadStream();
-            var uploadResult = await service.Firebase.UploadFileAsync(stream, ECloudFolder.Resume, fileName, CancellationToken.None);
-            if (uploadResult.Success)
+            var uploadResult = await cloudtenary.UploadRawFileAsync(userId.Replace("-", ""), file.Name, stream);
+            if (uploadResult != null)
             {
-                user.ResumeLink = uploadResult.Link;
+                user.ResumeLink = uploadResult.Url;
+                user.ResumeLinkPublicId = uploadResult.PublicId;
                 await userManager.UpdateAsync(user);
                 if (auditLog != null)
                 {
@@ -204,7 +205,7 @@ namespace ProfessionalProfiles.Graph.Mutations
                     await auditLogger.LogAuditAsync(auditLog);
                 }
 
-                return new Payload("File successfully uploaded", uploadResult.Success);
+                return new Payload("File successfully uploaded", true);
             }
 
             return new Payload("Upload to server failed. Please try again.");

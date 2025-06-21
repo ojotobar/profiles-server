@@ -22,7 +22,9 @@ namespace ProfessionalProfiles.Entities.Models
         public ProfessionalLocation? Location { get; set; }
         public long KeyMarker { get; set; }
         public string? ProfilePicture { get; set; }
+        public string? ProfilePicturePublicId { get; set; }
         public string? ResumeLink { get; set; }
+        public string? ResumeLinkPublicId { get; set; }
         public string LatestUsedClientTag { get; set; } = string.Empty;
         public HashSet<SocialMedia> SocialMedia { get; set; } = [];
     }
