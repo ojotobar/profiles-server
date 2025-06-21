@@ -16,7 +16,8 @@ namespace ProfessionalProfiles.Graph.Extensions
 {
     public static class GraphServiceExtensions
     {
-        private const long MAX_FILE_SIZE = 1572684;//1.5mb
+        private const long MAX_IMAGE_SIZE = 3145368; //3mb
+        private const long MAX_DOC_SIZE = 524288;//500kb
         private static readonly List<string> ALLOWEDIMAGEFORMATS = [".png", ".jpg", ".jpeg"];
         private static  readonly List<string> ALLOWEDDOCFORMATS = [".pdf", ".docx", ".doc"];
 
@@ -155,9 +156,9 @@ namespace ProfessionalProfiles.Graph.Extensions
                 return new UserCommonPayload(UserGenericPayload.Initialize("", "Invalid file", HttpStatusCode.BadRequest));
             }
 
-            if (file.Length > MAX_FILE_SIZE)
+            if (file.Length > MAX_IMAGE_SIZE)
             {
-                return new UserCommonPayload(UserGenericPayload.Initialize("", $"File size exceeds limit of {MAX_FILE_SIZE / 1024}kb", HttpStatusCode.BadRequest));
+                return new UserCommonPayload(UserGenericPayload.Initialize("", $"File size exceeds limit of {MAX_IMAGE_SIZE / 1024}kb", HttpStatusCode.BadRequest));
             }
 
             if (!ALLOWEDIMAGEFORMATS.Any(f => file.Name.EndsWith(f)))
@@ -175,9 +176,9 @@ namespace ProfessionalProfiles.Graph.Extensions
                 return new UserCommonPayload(UserGenericPayload.Initialize("", "Invalid file", HttpStatusCode.BadRequest));
             }
 
-            if (file.Length > MAX_FILE_SIZE)
+            if (file.Length > MAX_DOC_SIZE)
             {
-                return new UserCommonPayload(UserGenericPayload.Initialize("", $"File size exceeds limit of {MAX_FILE_SIZE / 1024}kb", HttpStatusCode.BadRequest));
+                return new UserCommonPayload(UserGenericPayload.Initialize("", $"File size exceeds limit of {MAX_DOC_SIZE / 1024}kb", HttpStatusCode.BadRequest));
             }
 
             if (!ALLOWEDDOCFORMATS.Any(f => file.Name.EndsWith(f)))
